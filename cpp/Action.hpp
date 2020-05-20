@@ -1,12 +1,9 @@
 #ifndef ACTION_HPP
 #define ACTION_HPP
 
-
 enum Action {
   C,
-  D,
-  U, // undetermined
-  W  // wild-card
+  D
 };
 
 char A2C(Action act);

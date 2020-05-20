@@ -55,13 +55,11 @@ void test_Strategy() {
   std::string bits("ccccddddccccddddccccddddccccddddccccddddccccddddccccddddccccdddd");
   assert( s1.ToString() == bits );
   assert( s1 == Strategy(bits.c_str()) );
-  assert( s1.NumFixed() == 64 );
 
   assert( s1.ActionAt(State("cccccc")) == C );
   assert( s1.ActionAt("ddddcc") == D );  // implicit conversion
 
   assert( s1.IsDefensible() );
-  assert( s1.NegativeDanglingStates().size() == 0 ); // for fixed strategy, there is no dangling states
 
   {
     Strategy alld("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd");
@@ -149,55 +147,6 @@ void test_Strategy() {
   }
 }
 
-void test_MetaStrategy() {
-  {
-    Strategy s1("_______d_______c_______d_______d_______c_______d_______c_______d");
-    assert( s1.IsDefensible() == true );
-    assert( s1.NumFixed() == 8 );
-    std::vector<State> ds = s1.DanglingStates();
-    assert(ds.size() == 7);
-    // ds = ["ccdddc", "cdcddc", "dcdddc", "dddddc", "cccddc", "cddddc", "dccddc", "dddddc"]
-    //   (<-["cccddd", "ccdddd", "cdcddd", "cddddd", "dccddd", "dcdddd", "ddcddd", "dddddd"])
-    //    = ["cccddc", "ccdddc", "cdcddc", "cddddc", "dccddc", "dcdddc", "dddddc"]
-    assert(ds[0] == State("cccddc"));
-    assert(ds[3] == State("cddddc"));
-    assert(ds[6] == State("dddddc"));
-    s1.SetAction("ccdccc", C);
-    s1.SetAction("dddccc", W);
-    assert( s1.ToString() == "_______dc______c_______d_______d_______c_______d_______c*______d" );
-    assert( s1.IsDefensible() );
-  }
-
-  {
-    Strategy s2("_______*_______c_______d_______d_______c_______d_______c_______d");
-    assert( s2.IsDefensible() == false );
-    auto dests = s2.DestsOfITG();
-    for(int i=0; i<63; i++) { assert( dests[i] == -1 ); }  // dests are undetermined
-    assert( dests[63] == 63 );  // only dests[63] is determined
-  }
-
-  {
-    Strategy s3("________________________________________________________________");
-    s3.SetAction("ddcddd", D);
-    s3.SetAction("dcdddc", D);
-    auto ds = s3.DanglingStates();
-    // ddcddd - dcdddd
-    //        \ dcdddc
-    //               \  cdddcc
-    //                \ cdddcd
-    // dangling states:  dcdddd, cddddc, cddddd
-    assert( ds.size() == 3 );
-    assert( ds[0] == State("cdddcc"));
-    assert( ds[1] == State("cdddcd"));
-    assert( ds[2] == State("dcdddd"));
-
-    assert( s3.IsDefensible() );
-    auto nds = s3.NegativeDanglingStates();
-    assert( nds.size() == 1 );
-    assert( nds[0] == State("dcdddd") );
-  }
-}
-
 void test_TFTATFT() {
   // [TODO] test TFT-ATFT strategy
   // 0  *cc*cc : c , 16 *dc*cc : c
@@ -253,7 +202,6 @@ int main() {
 
   test_State();
   test_Strategy();
-  test_MetaStrategy();
   test_EfficiencyDefensible();
   test_TFTATFT();
   return 0;
