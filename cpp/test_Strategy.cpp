@@ -148,7 +148,6 @@ void test_Strategy() {
 }
 
 void test_TFTATFT() {
-  // [TODO] test TFT-ATFT strategy
   // 0  *cc*cc : c , 16 *dc*cc : c
   // 1  *cc*cd : d , 17 *dc*cd : d
   // 2  *cc*dc : c , 18 *dc*dc : c
@@ -170,11 +169,42 @@ void test_TFTATFT() {
     tft_atft.SetAction(i, m.at(masked) );
   }
 
+  assert( tft_atft.ToString() == "cdcdcdcddccddccdcdcccdccdccddccdcdcdcdcddccddccdcdcccdccdccddccd" );
+
   assert( tft_atft.IsDefensible() );
   assert( tft_atft.IsEfficient() );
 
   assert( tft_atft.IsDistinguishable() );
   assert( tft_atft.IsDistinguishableTopo() );
+}
+
+void test_CAPRI() {
+  // action table of CAPRI
+  // A's history : B's history (ccc,ccd,cdc,cdd,dcc,dcd,ddc,ddd)
+  // ccc : cddd cddd
+  // ccd : cdcd dddd
+  // cdc : dcdd cddd
+  // cdd : dddd dddd
+  // dcc : cdcd cdcd
+  // dcd : dddd dddd
+  // ddc : dddd cdcc
+  // ddd : dddd ddcd
+  Strategy capri("cdddcdddcdcddddddcddcdddddddddddcdcdcdcdddddddddddddcdccddddddcd");
+
+  assert( capri.IsDefensible() );
+  assert( capri.IsEfficient() );
+  assert( capri.IsEfficientTopo() );
+
+  assert( capri.IsDistinguishable() );
+  assert( capri.IsDistinguishableTopo() );
+
+  { // distinguishable against WSLS
+    Strategy wsls("cdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdc");
+    const auto stat = capri.StationaryState(1.0e-6, &wsls);
+    assert( std::abs(stat[61]-0.5) < 0.01 );  // ddd,dcd ~ 0.5
+    assert( std::abs(stat[58]-0.5) < 0.01 );  // ddd,cdc ~ 0.5
+    assert( stat[0] < 0.01 );  // ccc,ccc ~ 0.5
+  }
 }
 
 void test_EfficiencyDefensible() {
@@ -192,6 +222,7 @@ int main() {
   test_Strategy();
   test_EfficiencyDefensible();
   test_TFTATFT();
+  test_CAPRI();
   return 0;
 }
 
