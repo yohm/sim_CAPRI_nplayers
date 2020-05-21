@@ -151,7 +151,7 @@ int Strategy::NextITGState(const State &s) const {
   return -1;
 }
 
-std::array<double, 64> Strategy::StationaryState(double e, const Strategy *coplayer) const {
+std::array<double, 64> Strategy::StationaryState2(double e, const Strategy *coplayer) const {
   if (coplayer == NULL) { coplayer = this; }
   Eigen::Matrix<double, 65, 64> A;
 
@@ -197,6 +197,64 @@ std::array<double, 64> Strategy::StationaryState(double e, const Strategy *copla
     assert(true);
   }
    */
+  return ans;
+}
+
+std::array<double, 64> Strategy::StationaryState(double e, const Strategy *coplayer) const {
+  if (coplayer == NULL) { coplayer = this; }
+
+  typedef Eigen::Triplet<double> T;
+  std::vector<T> tripletVec;
+
+  for (int i = 0; i < 64; i++) {
+    const State si(i);
+    for (int j = 0; j < 64; j++) {
+      // calculate transition probability from j to i
+      const State sj(j);
+      Action act_a = ActionAt(sj);
+      Action act_b = coplayer->ActionAt(sj.SwapAB());
+      State next = sj.NextState(act_a, act_b);
+      int d = next.NumDiffInT1(si);
+      double aij = 0.0;
+      if (d < 0) {
+        // A(i, j) = 0.0;
+      } else if (d == 0) {
+        // A(i, j) = (1.0 - e) * (1.0 - e);
+        aij = (1.0-e)*(1.0-e);
+      } else if (d == 1) {
+        // A(i, j) = (1.0 - e) * e;
+        aij = (1.0-e)*e;
+      } else if (d == 2) {
+        // A(i, j) = e * e;
+        aij = e*e;
+      } else {
+        assert(false);
+      }
+      if (i == j) { aij -= 1.0; }  // subtract unix matrix
+      if (i == 63) { aij += 1.0; } // normalization condition
+      if (aij != 0.0) {
+        tripletVec.emplace_back(i, j, aij);
+      }
+    }
+  }
+  Eigen::SparseMatrix<double> A(64,64);
+  A.setFromTriplets(tripletVec.cbegin(), tripletVec.cend());
+
+  Eigen::VectorXd b(64);
+  for (int i = 0; i < 63; i++) { b(i) = 0.0; }
+  b(63) = 1.0;
+
+  Eigen::BiCGSTAB<Eigen::SparseMatrix<double> > solver;
+  solver.compute(A);
+  Eigen::VectorXd x = solver.solve(b);
+
+  std::cerr << "#iterations:     " << solver.iterations() << std::endl;
+  std::cerr << "estimated error: " << solver.error()      << std::endl;
+
+  std::array<double, 64> ans = {0};
+  for (int i = 0; i < 64; i++) {
+    ans[i] = x(i);
+  }
   return ans;
 }
 
