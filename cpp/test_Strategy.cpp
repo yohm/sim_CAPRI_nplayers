@@ -64,6 +64,7 @@ void test_Strategy() {
   {
     Strategy alld("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd");
     assert( alld.IsDefensible() == true );
+    assert( alld.IsDefensibleDFA() == true );
     assert( alld.IsEfficient() == false );
     assert( alld.IsEfficientTopo() == false );
     auto dests = alld.DestsOfITG();
@@ -84,6 +85,7 @@ void test_Strategy() {
   {
     Strategy allc("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
     assert( allc.IsDefensible() == false );
+    assert( allc.IsDefensibleDFA() == false );
     assert( allc.IsEfficient() == true );
     assert( allc.IsEfficientTopo() == true );
     auto dests = allc.DestsOfITG();
@@ -104,6 +106,7 @@ void test_Strategy() {
   {
     Strategy tft("cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
     assert( tft.IsDefensible() == true );
+    assert( tft.IsDefensibleDFA() == true );
     assert( tft.IsEfficient() == false );
     assert( tft.IsEfficientTopo() == false );
     auto dests = tft.DestsOfITG();
@@ -130,6 +133,7 @@ void test_Strategy() {
   {
     Strategy wsls("cdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdc");
     assert( wsls.IsDefensible() == false );
+    assert( wsls.IsDefensibleDFA() == false );
     assert( wsls.IsEfficient() == true );
     assert( wsls.IsEfficientTopo() == true );
     auto dests = wsls.DestsOfITG();
@@ -154,6 +158,7 @@ void test_Strategy() {
   {
     Strategy tf2t("cccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccd"); // tf2t
     assert( tf2t.IsDefensible() == false );
+    assert( tf2t.IsDefensibleDFA() == false );
     assert( tf2t.IsEfficient() == true );
     assert( tf2t.IsEfficientTopo() == true );
     auto dests = tf2t.DestsOfITG();
@@ -212,6 +217,7 @@ void test_TFTATFT() {
   assert( tft_atft.ToString() == "cdcdcdcddccddccdcdcccdccdccddccdcdcdcdcddccddccdcdcccdccdccddccd" );
 
   assert( tft_atft.IsDefensible() );
+  assert( tft_atft.IsDefensibleDFA() );
   assert( tft_atft.IsEfficient() );
 
   assert( tft_atft.IsDistinguishable() );
@@ -248,6 +254,7 @@ void test_CAPRI() {
   Strategy capri("cdddcdddcdcddddddcddcdddddddddddcdcdcdcdddddddddddddcdccddddddcd");
 
   assert( capri.IsDefensible() );
+  assert( capri.IsDefensibleDFA() );
   assert( capri.IsEfficient() );
   assert( capri.IsEfficientTopo() );
 
@@ -272,6 +279,7 @@ void test_EfficiencyDefensible() {
   Strategy s1("cdddddddcdcdddcddcddcdddddccdcddddcdcdddddddddcdddddddcddddcdddd");  // efficient and defensible
   assert( s1.IsEfficient() );
   assert( s1.IsDefensible() );
+  assert( s1.IsDefensibleDFA() );
   // auto stat = s1.StationaryState(0.0001);
   // for(int i=0; i<64; i++) { assert(stat[i] < 0.01); }
 }

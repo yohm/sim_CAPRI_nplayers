@@ -72,6 +72,48 @@ bool Strategy::IsDefensible() const {
   return true;
 }
 
+bool Strategy::IsDefensibleDFA() const {
+  const auto autom = MinimizeDFA(false).to_map();
+  std::vector<std::set<size_t> > groups;
+  for (const auto & kv : autom) { groups.emplace_back(kv.second); }
+  const size_t AN = groups.size(); // automaton size
+
+  // initialize d_matrix
+  const int INF = 32; // 32 is large enough since the path length is between -16 to 16.
+  std::vector<std::vector<int> > d(AN);
+  for (size_t i = 0; i < AN; i++) { d[i].resize(AN, INF); }
+
+  auto find_next_group_index = [&groups](const State &ns)->size_t {
+    auto found = std::find_if(groups.cbegin(), groups.cend(), [&ns](std::set<size_t> g) {
+      return g.find(ns.ID()) != g.cend();
+    });
+    assert(found != groups.cend());
+    return std::distance(groups.cbegin(), found);
+  };
+
+  // set distance matrix
+  for (size_t i = 0; i < AN; i++) {
+    State sa = State(*groups[i].cbegin());  // get a first state
+    Action act_a = ActionAt(sa);  // A's action is same for all states in this group
+    for (const auto act_b: std::array<Action,2>({C,D})) {
+      State ns = sa.NextState(act_a, act_b);
+      size_t j = find_next_group_index(ns);
+      d[i][j] = MIN(d[i][j], ns.RelativePayoff() );
+    }
+    if (d[i][i] < 0) { return false; }
+  }
+
+  for (size_t k = 0; k < AN; k++) {
+    for (size_t i = 0; i < AN; i++) {
+      for (size_t j = 0; j < AN; j++) {
+        d[i][j] = MIN(d[i][j], d[i][k] + d[k][j]);
+      }
+      if (d[i][i] < 0) { return false; }
+    }
+  }
+  return true;
+}
+
 std::array<int, 64> Strategy::DestsOfITG() const {
   std::array<int, 64> dests = {};
   std::array<bool, 64> fixed = {false};
