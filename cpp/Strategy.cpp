@@ -281,3 +281,54 @@ bool Strategy::IsDistinguishableTopo() const {
   return false;
 }
 
+UnionFind Strategy::MinimizeDFA(bool noisy) const {
+  UnionFind uf_0(64);
+  // initialize grouping by the action c/d
+  size_t c_rep = -1, d_rep = -1;
+  for (size_t i = 0; i < 64; i++) { if (actions[i] == C) { c_rep = i; break; } }
+  for (size_t i = 0; i < 64; i++) { if (actions[i] == D) { d_rep = i; break; } }
+  for (size_t i = 0; i < 64; i++) {
+    size_t target = (actions[i] == C) ? c_rep : d_rep;
+    uf_0.merge(i, target);
+  }
+
+  while (true) {
+    UnionFind uf(64);
+    const auto uf_0_map = uf_0.to_map();
+    for (const auto &kv : uf_0_map) { // refining a set in uf_0
+      const auto &group = kv.second;
+      // iterate over combinations in group
+      for (auto it_i = group.cbegin(); it_i != group.cend(); it_i++) {
+        auto it_j = it_i;
+        it_j++;
+        for ( ; it_j != group.cend(); it_j++) {
+          if (_Equivalent(*it_i, *it_j, uf_0, noisy)) {
+            uf.merge(*it_i, *it_j);
+          }
+        }
+      }
+    }
+    if ( uf_0_map == uf.to_map() ) break;
+    uf_0 = uf;
+  }
+  return uf_0;
+}
+
+bool Strategy::_Equivalent(size_t i, size_t j, UnionFind &uf_0, bool noisy) const {
+  assert( actions[i] == actions[j] );
+  Action act_a = actions[i];
+  Action err_a = (act_a == C) ? D : C;
+  std::array<Action,2> acts_b = {C,D};
+  for (const Action& act_b : acts_b) {
+    size_t ni = State(i).NextState(act_a, act_b).ID();
+    size_t nj = State(j).NextState(act_a, act_b).ID();
+    if (uf_0.root(ni) != uf_0.root(nj)) { return false; }
+    if (noisy) {
+      size_t ni2 = State(i).NextState(err_a, act_b).ID();
+      size_t nj2 = State(j).NextState(err_a, act_b).ID();
+      if (uf_0.root(ni2) != uf_0.root(nj2)) { return false; }
+    }
+  }
+  return true;
+}
+

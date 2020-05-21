@@ -75,6 +75,11 @@ void test_Strategy() {
 
     assert( alld.IsDistinguishable() == true );
     assert( alld.IsDistinguishableTopo() == true );
+
+    const auto simp_automaton = alld.MinimizeDFA(false).to_map();
+    assert(simp_automaton.size() == 1);
+    const auto full_automaton = alld.MinimizeDFA(true).to_map();
+    assert(full_automaton.size() == 1);
   }
   {
     Strategy allc("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
@@ -90,6 +95,11 @@ void test_Strategy() {
 
     assert( allc.IsDistinguishable() == false );
     assert( allc.IsDistinguishableTopo() == false );
+
+    const auto simp_automaton = allc.MinimizeDFA(false).to_map();
+    assert(simp_automaton.size() == 1);
+    const auto full_automaton = allc.MinimizeDFA(true).to_map();
+    assert(full_automaton.size() == 1);
   }
   {
     Strategy tft("cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
@@ -107,6 +117,15 @@ void test_Strategy() {
 
     assert( tft.IsDistinguishable() == false );
     assert( tft.IsDistinguishableTopo() == false );
+
+    const auto simp_automaton = tft.MinimizeDFA(false).to_map();
+    assert(simp_automaton.size() == 2);
+    assert(simp_automaton.at(0).size() == 32);
+    assert(simp_automaton.at(1).size() == 32);
+    const auto full_automaton = tft.MinimizeDFA(true).to_map();
+    assert(full_automaton.size() == 2);
+    assert(full_automaton.at(0).size() == 32);
+    assert(full_automaton.at(1).size() == 32);
   }
   {
     Strategy wsls("cdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdc");
@@ -122,6 +141,15 @@ void test_Strategy() {
 
     assert( wsls.IsDistinguishable() == true );
     assert( wsls.IsDistinguishableTopo() == true );
+
+    const auto simp_automaton = wsls.MinimizeDFA(false).to_map();
+    assert(simp_automaton.size() == 2);
+    assert(simp_automaton.at(0).size() == 32);
+    assert(simp_automaton.at(1).size() == 32);
+    const auto full_automaton = wsls.MinimizeDFA(true).to_map();
+    assert(full_automaton.size() == 2);
+    assert(full_automaton.at(0).size() == 32);
+    assert(full_automaton.at(1).size() == 32);
   }
   {
     Strategy tf2t("cccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccd"); // tf2t
@@ -137,6 +165,18 @@ void test_Strategy() {
 
     assert( tf2t.IsDistinguishable() == false );
     assert( tf2t.IsDistinguishableTopo() == false );
+
+    const auto simp_automaton = tf2t.MinimizeDFA(false).to_map();
+    assert(simp_automaton.size() == 3);
+    assert(simp_automaton.at(0).size() == 32);
+    assert(simp_automaton.at(1) == std::set<size_t>({1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61}));
+    assert(simp_automaton.at(3) == std::set<size_t>({3,7,11,15,19,23,27,31,35,39,43,47,51,55,59,63}));
+
+    const auto full_automaton = tf2t.MinimizeDFA(true).to_map();
+    assert(full_automaton.size() == 3);
+    assert(full_automaton.at(0).size() == 32);
+    assert(full_automaton.at(1) == std::set<size_t>({1,5,9,13,17,21,25,29,33,37,41,45,49,53,57,61}));
+    assert(full_automaton.at(3) == std::set<size_t>({3,7,11,15,19,23,27,31,35,39,43,47,51,55,59,63}));
   }
 
   {
@@ -176,6 +216,22 @@ void test_TFTATFT() {
 
   assert( tft_atft.IsDistinguishable() );
   assert( tft_atft.IsDistinguishableTopo() );
+
+  const auto simp_automaton = tft_atft.MinimizeDFA(false).to_map();
+  assert(simp_automaton.size() == 4);
+  assert(simp_automaton.at(0).size() == 28);  // TFT-c
+  assert(simp_automaton.at(1).size() == 20);  // TFT-d
+  assert(simp_automaton.at(8) == std::set<size_t>({8,12,40,44, 24,28,56,60}));  // ATFT-d
+  assert(simp_automaton.at(9) == std::set<size_t>({9,13,41,45, 25,29,57,61}));  // ATFT-c
+
+  const auto full_auto = tft_atft.MinimizeDFA(true).to_map();
+  assert(full_auto.size() == 6);
+  assert(full_auto.at(0).size() == 24);  // TFT-c
+  assert(full_auto.at(1).size() == 12);  // TFT-d
+  assert(full_auto.at(8) == std::set<size_t>({8,12,40,44, 24,28,56,60}));  // ATFT-d
+  assert(full_auto.at(9) == std::set<size_t>({9,13,41,45, 25,29,57,61}));  // ATFT-c
+  assert(full_auto.at(19) == std::set<size_t>({19,23,51,55}));  // TFT-c-2
+  assert(full_auto.at(11) == std::set<size_t>({11,15,43,47, 27,31,59,63}));  // TFT-d-2
 }
 
 void test_CAPRI() {
@@ -205,6 +261,11 @@ void test_CAPRI() {
     assert( std::abs(stat[58]-0.5) < 0.01 );  // ddd,cdc ~ 0.5
     assert( stat[0] < 0.01 );  // ccc,ccc ~ 0.5
   }
+
+  const auto simp_auto = capri.MinimizeDFA(false).to_map();
+  assert(simp_auto.size() == 7);
+  const auto full_auto = capri.MinimizeDFA(true).to_map();
+  assert(full_auto.size() == 14);
 }
 
 void test_EfficiencyDefensible() {
