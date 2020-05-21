@@ -163,7 +163,7 @@ void test_TFTATFT() {
       {16, C}, {17, D}, {18, C}, {19, C},
       {24, D}, {25, C}, {26, C}, {27, D}
   };
-  Strategy tft_atft("________________________________________________________________");
+  Strategy tft_atft("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
   int mask = 27; // 011011
   for(int i=0; i<64; i++) {
     int masked = i & mask;
@@ -173,24 +173,12 @@ void test_TFTATFT() {
   assert( tft_atft.IsDefensible() );
   assert( tft_atft.IsEfficient() );
 
-  assert( tft_atft.IsDistinguishable() == true );
-  assert( tft_atft.IsDistinguishableTopo() == true );
+  assert( tft_atft.IsDistinguishable() );
+  assert( tft_atft.IsDistinguishableTopo() );
 }
 
 void test_EfficiencyDefensible() {
-  // Strategy s1("cdddcccdcccdccdccccdddddccccccddccddcdccdccddcddddcdccccccccccdd");
-  // Strategy s1("cdddcccdcdcdccdccccdddddccddccddcdddcddcdccddcddddcddddcddddccdd");
-  // Strategy s1("cdddcccdc*cdccdccccdddddcc**ccddc*ddcd*cdccddcddddcd***c****ccdd");
-  // cdddcccdcdcdccdccccdddddcdcdccddd*ddcd*cdccddcddddcd***ccddddcdd
-  // Strategy s1("cdddcccdcdcdccdccccdddddcdcdccdddcddcdccdccddcddddcdcccccddddcdd");
-  // Strategy s1("cdddcccdcdcdccdccccdddddcdcdccddddddcddcdccddcddddcddddccddddcdd");
-  // cdddcccdcdcdccdcdccdddddcdcdccddd*ddcd*cdccddcddddddc**ccccddcdd
-  // Strategy s1("cdddcccdcdcdccdcdccdddddcdcdccdddcddcdccdccddcddddddcccccccddcdd"); // efficient and defensible
-  // Strategy s1("cdddcccdcdcdccdcdccdddddcdcdccddddddcddcdccddcddddddcddccccddcdd");
-  // Strategy s1("cd*ddd*dcdcd**cd*c*dcd*d**ccdcddddcdcd*d**ddddcd**dd**cd**dcdddd");
   Strategy s1("cdddddddcdcdddcddcddcdddddccdcddddcdcdddddddddcdddddddcddddcdddd");  // efficient and defensible
-  // Strategy s1("cdddddddcdcdddcddcddcdddddccdcddddcdcdddddddddcdddddddcddddddddd");
-  // Strategy s1("cdcdddcdcdcdcccdcccdcdcdccccdcddddcdcdcdccddddcdccddcccdccdddddd");
   assert( s1.IsEfficient() );
   assert( s1.IsDefensible() );
   // auto stat = s1.StationaryState(0.0001);

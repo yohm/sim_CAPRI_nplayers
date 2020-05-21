@@ -76,7 +76,7 @@ class State {
     Action a_1_n = (a_1 == C) ? D : C;
     Action b_1_n = (b_1 == C) ? D : C;
     std::array<State, 2> ans = {State(a_3, a_2, a_1_n, b_3, b_2, b_1), State(a_3, a_2, a_1, b_3, b_2, b_1_n)};
-    return std::move(ans);
+    return ans;
   }
   int NumDiffInT1(const State &other) const {
     if (a_3 != other.a_3 || a_2 != other.a_2 || b_3 != other.b_3 || b_2 != other.b_2) {
@@ -119,21 +119,19 @@ class Strategy {
   }
 
   Action ActionAt(const State &s) const { return actions[s.ID()]; }
-  void SetAction(const State &s, Action a) {
-    actions[s.ID()] = a;
-  }
+  void SetAction(const State &s, Action a) { actions[s.ID()] = a; }
   bool IsDefensible() const;  // check defensibility.
-  std::array<double, 64> StationaryState(double e = 0.0001, const Strategy *coplayer = NULL) const;
-  bool IsEfficient(double e = 0.00001, double th = 0.95) const {
-    return (StationaryState(e)[0] > th);
-  } // check efficiency. all actions must be fixed
+  // get stationary state. When coplayer is nullptr, it is set to self
+  std::array<double, 64> StationaryState(double e = 0.0001, const Strategy *coplayer = nullptr) const;
+  // check efficiency. all actions must be fixed
+  bool IsEfficient(double e = 0.00001, double th = 0.95) const { return (StationaryState(e)[0] > th); }
   bool IsEfficientTopo() const; // check efficiency using ITG
   bool IsDistinguishable(double e = 0.00001, double th = 0.95) const {
     const Strategy allc("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
     return (StationaryState(e, &allc)[0] < th);
   };  // check distinguishability against AllC
   bool IsDistinguishableTopo() const; // check distinguishability using the transition graph
-  DirectedGraph ITG(bool make_link_UW = true) const;  // construct g(S,S).
+  DirectedGraph ITG() const;  // construct g(S,S).
   std::array<int, 64> DestsOfITG() const; // Trace g(S,S) from node i. Destination is stored in i'th element.
   int NextITGState(const State &s) const; // Trace the intra-transition graph by one step
  private:

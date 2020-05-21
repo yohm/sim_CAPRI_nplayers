@@ -63,7 +63,6 @@ bool Strategy::IsDefensible() const {
 
   for (size_t k = 0; k < N; k++) {
     for (size_t i = 0; i < N; i++) {
-        continue; // m_d[i][j] is not updated since it is always INFINITY when i does not have an out-link
       for (size_t j = 0; j < N; j++) {
         d[i][j] = MIN(d[i][j], d[i][k] + d[k][j]);
       }
@@ -159,7 +158,7 @@ std::array<double, 64> Strategy::StationaryState(double e, const Strategy *copla
   return ans;
 }
 
-DirectedGraph Strategy::ITG(bool make_link_UW) const {
+DirectedGraph Strategy::ITG() const {
   DirectedGraph g(64);
   for (int i = 0; i < 64; i++) {
     State sa(i);
