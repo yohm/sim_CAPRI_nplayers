@@ -22,20 +22,14 @@ class Strategy;
 class State {
  public:
   State(Action _a_3, Action _a_2, Action _a_1, Action _b_3, Action _b_2, Action _b_1) :
-      a_3(_a_3), a_2(_a_2), a_1(_a_1), b_3(_b_3), b_2(_b_2), b_1(_b_1) { assert(AllCorD()); };
+      a_3(_a_3), a_2(_a_2), a_1(_a_1), b_3(_b_3), b_2(_b_2), b_1(_b_1) {};
   State(uint64_t id) :  // upper bit [a_3,a_2,a_1,b_3,b_2,b_1] lower bit
-      a_3(((id >> 5) & 1) ? D : C), a_2(((id >> 4) & 1) ? D : C), a_1(((id >> 3) & 1) ? D : C),
-      b_3(((id >> 2) & 1) ? D : C), b_2(((id >> 1) & 1) ? D : C), b_1(((id >> 0) & 1) ? D : C) { assert(AllCorD()); };
+      a_3(((id >> 5u) & 1) ? D : C), a_2(((id >> 4u) & 1) ? D : C), a_1(((id >> 3u) & 1) ? D : C),
+      b_3(((id >> 2u) & 1) ? D : C), b_2(((id >> 1u) & 1) ? D : C), b_1(((id >> 0u) & 1) ? D : C) {};
   State(const char str[6]) :
       a_3(C2A(str[0])), a_2(C2A(str[1])), a_1(C2A(str[2])),
-      b_3(C2A(str[3])), b_2(C2A(str[4])), b_1(C2A(str[5])) { assert(AllCorD()); };
+      b_3(C2A(str[3])), b_2(C2A(str[4])), b_1(C2A(str[5])) {};
   const Action a_3, a_2, a_1, b_3, b_2, b_1;
-  bool AllCorD() const {
-    return (
-        (a_3 == D || a_3 == C) && (a_2 == D || a_2 == C) && (a_1 == D || a_1 == C) &&
-            (b_3 == D || b_3 == C) && (b_2 == D || b_2 == C) && (b_1 == D || b_1 == C)
-    );
-  }
 
   bool operator==(const State &rhs) const {
     return (a_3 == rhs.a_3 && a_2 == rhs.a_2 && a_1 == rhs.a_1 && b_3 == rhs.b_3 && b_2 == rhs.b_2 && b_1 == rhs.b_1);
@@ -46,8 +40,6 @@ class State {
   };
 
   State NextState(Action act_a, Action act_b) const {
-    assert(act_a == C || act_a == D);
-    assert(act_b == C || act_b == D);
     return State(a_2, a_1, act_a, b_2, b_1, act_b);
   };
 
@@ -92,23 +84,22 @@ class State {
 
   uint64_t ID() const {  // ID must be 0~63 integer. AllC: 0, AllD: 63
     uint64_t id = 0;
-    if (a_3 == D) { id += 1 << 5; }
-    if (a_2 == D) { id += 1 << 4; }
-    if (a_1 == D) { id += 1 << 3; }
-    if (b_3 == D) { id += 1 << 2; }
-    if (b_2 == D) { id += 1 << 1; }
-    if (b_1 == D) { id += 1 << 0; }
+    if (a_3 == D) { id += 1ull << 5u; }
+    if (a_2 == D) { id += 1ull << 4u; }
+    if (a_1 == D) { id += 1ull << 3u; }
+    if (b_3 == D) { id += 1ull << 2u; }
+    if (b_2 == D) { id += 1ull << 1u; }
+    if (b_1 == D) { id += 1ull << 0u; }
     return id;
   }
   bool operator<(const State &rhs) const {
     return (ID() < rhs.ID());
   }
-
 };
 
 class UnionFind {
  public:
-  UnionFind(size_t n) : parent(n) {
+  explicit UnionFind(size_t n) : parent(n) {
     for (size_t i = 0; i < n; i++) { parent[i] = i; }
   }
   size_t root(size_t i) {
@@ -140,8 +131,8 @@ class UnionFind {
 
 class Strategy {
  public:
-  Strategy(const std::array<Action, 64> &acts); // construct a strategy from a list of actions
-  Strategy(const char acts[64]);
+  explicit Strategy(const std::array<Action, 64> &acts); // construct a strategy from a list of actions
+  explicit Strategy(const char acts[64]);
   std::array<Action, 64> actions;
 
   std::string ToString() const;
@@ -173,7 +164,7 @@ class Strategy {
  private:
   typedef std::array<std::array<int8_t, 64>, 64> d_matrix_t;
   std::vector<State> NextPossibleStates(State current) const;
-  bool _Equivalent(size_t i, size_t j, UnionFind& uf_0, bool noisy) const;
+  bool _Equivalent(size_t i, size_t j, UnionFind &uf_0, bool noisy) const;
 };
 
 #endif //STRATEGY_HPP

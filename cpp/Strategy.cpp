@@ -75,7 +75,8 @@ bool Strategy::IsDefensible() const {
 bool Strategy::IsDefensibleDFA() const {
   const auto autom = MinimizeDFA(false).to_map();
   std::vector<std::set<size_t> > groups;
-  for (const auto & kv : autom) { groups.emplace_back(kv.second); }
+  groups.reserve(autom.size());
+  for (const auto &kv : autom) { groups.emplace_back(kv.second); }
   const size_t AN = groups.size(); // automaton size
 
   // initialize d_matrix
@@ -83,7 +84,7 @@ bool Strategy::IsDefensibleDFA() const {
   std::vector<std::vector<int> > d(AN);
   for (size_t i = 0; i < AN; i++) { d[i].resize(AN, INF); }
 
-  auto find_next_group_index = [&groups](const State &ns)->size_t {
+  auto group_index_of_state = [&groups](const State &ns) -> size_t {
     auto found = std::find_if(groups.cbegin(), groups.cend(), [&ns](std::set<size_t> g) {
       return g.find(ns.ID()) != g.cend();
     });
@@ -95,10 +96,10 @@ bool Strategy::IsDefensibleDFA() const {
   for (size_t i = 0; i < AN; i++) {
     State sa = State(*groups[i].cbegin());  // get a first state
     Action act_a = ActionAt(sa);  // A's action is same for all states in this group
-    for (const auto act_b: std::array<Action,2>({C,D})) {
+    for (const auto act_b: std::array<Action, 2>({C, D})) {
       State ns = sa.NextState(act_a, act_b);
-      size_t j = find_next_group_index(ns);
-      d[i][j] = MIN(d[i][j], ns.RelativePayoff() );
+      size_t j = group_index_of_state(ns);
+      d[i][j] = MIN(d[i][j], ns.RelativePayoff());
     }
     if (d[i][i] < 0) { return false; }
   }
@@ -220,13 +221,13 @@ std::array<double, 64> Strategy::StationaryState(double e, const Strategy *copla
         // A(i, j) = 0.0;
       } else if (d == 0) {
         // A(i, j) = (1.0 - e) * (1.0 - e);
-        aij = (1.0-e)*(1.0-e);
+        aij = (1.0 - e) * (1.0 - e);
       } else if (d == 1) {
         // A(i, j) = (1.0 - e) * e;
-        aij = (1.0-e)*e;
+        aij = (1.0 - e) * e;
       } else if (d == 2) {
         // A(i, j) = e * e;
-        aij = e*e;
+        aij = e * e;
       } else {
         assert(false);
       }
@@ -237,7 +238,7 @@ std::array<double, 64> Strategy::StationaryState(double e, const Strategy *copla
       }
     }
   }
-  Eigen::SparseMatrix<double> A(64,64);
+  Eigen::SparseMatrix<double> A(64, 64);
   A.setFromTriplets(tripletVec.cbegin(), tripletVec.cend());
 
   Eigen::VectorXd b(64);
@@ -249,7 +250,7 @@ std::array<double, 64> Strategy::StationaryState(double e, const Strategy *copla
   Eigen::VectorXd x = solver.solve(b);
 
   std::cerr << "#iterations:     " << solver.iterations() << std::endl;
-  std::cerr << "estimated error: " << solver.error()      << std::endl;
+  std::cerr << "estimated error: " << solver.error() << std::endl;
 
   std::array<double, 64> ans = {0};
   for (int i = 0; i < 64; i++) {
@@ -385,8 +386,18 @@ UnionFind Strategy::MinimizeDFA(bool noisy) const {
   UnionFind uf_0(64);
   // initialize grouping by the action c/d
   size_t c_rep = -1, d_rep = -1;
-  for (size_t i = 0; i < 64; i++) { if (actions[i] == C) { c_rep = i; break; } }
-  for (size_t i = 0; i < 64; i++) { if (actions[i] == D) { d_rep = i; break; } }
+  for (size_t i = 0; i < 64; i++) {
+    if (actions[i] == C) {
+      c_rep = i;
+      break;
+    }
+  }
+  for (size_t i = 0; i < 64; i++) {
+    if (actions[i] == D) {
+      d_rep = i;
+      break;
+    }
+  }
   for (size_t i = 0; i < 64; i++) {
     size_t target = (actions[i] == C) ? c_rep : d_rep;
     uf_0.merge(i, target);
@@ -401,25 +412,25 @@ UnionFind Strategy::MinimizeDFA(bool noisy) const {
       for (auto it_i = group.cbegin(); it_i != group.cend(); it_i++) {
         auto it_j = it_i;
         it_j++;
-        for ( ; it_j != group.cend(); it_j++) {
+        for (; it_j != group.cend(); it_j++) {
           if (_Equivalent(*it_i, *it_j, uf_0, noisy)) {
             uf.merge(*it_i, *it_j);
           }
         }
       }
     }
-    if ( uf_0_map == uf.to_map() ) break;
+    if (uf_0_map == uf.to_map()) break;
     uf_0 = uf;
   }
   return uf_0;
 }
 
 bool Strategy::_Equivalent(size_t i, size_t j, UnionFind &uf_0, bool noisy) const {
-  assert( actions[i] == actions[j] );
+  assert(actions[i] == actions[j]);
   Action act_a = actions[i];
   Action err_a = (act_a == C) ? D : C;
-  std::array<Action,2> acts_b = {C,D};
-  for (const Action& act_b : acts_b) {
+  std::array<Action, 2> acts_b = {C, D};
+  for (const Action &act_b : acts_b) {
     size_t ni = State(i).NextState(act_a, act_b).ID();
     size_t nj = State(j).NextState(act_a, act_b).ID();
     if (uf_0.root(ni) != uf_0.root(nj)) { return false; }
