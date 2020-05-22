@@ -95,23 +95,33 @@ class StateN3M5 {
   }
 
   int NumDiffInT1(const StateN3M5 &other) const {
-    if (ha[1] != other.ha[1] || ha[2] != other.ha[2] || ha[3] != other.ha[3] || ha[4] != other.ha[4]
-        || hb[1] != other.hb[1] || hb[2] != other.hb[2] || hb[3] != other.hb[3] || hb[4] != other.hb[4]
-        || hc[1] != other.hc[1] || hc[2] != other.hc[2] || hc[3] != other.hc[3] || hc[4] != other.hc[4]) {
+    const auto b1 = ToBits();
+    const auto b2 = other.ToBits();
+
+    std::bitset<15> mask("111101111011110");
+    if( (b1 & mask) != (b2 & mask) ) { // inconsistent bit is found
       return -1;
     } else {
-      int cnt = 0;
-      if (ha[0] != other.ha[0]) cnt++;
-      if (hb[0] != other.hb[0]) cnt++;
-      if (hc[0] != other.hc[0]) cnt++;
-      return cnt;
+      return ((b1 & ~mask) ^ (b2 & ~mask)).count(); // number of different bits
     }
   }
 
-  std::string ID() const {
+  std::string ToString() const {
     std::ostringstream os;
     os << *this;
     return os.str();
+  }
+
+  std::bitset<15> ToBits() const {
+    std::bitset<15> bits(0ull);
+    for (size_t i = 0; i < 5; i++) { if(ha[i]==D) bits.set(i); }
+    for (size_t i = 0; i < 5; i++) { if(hb[i]==D) bits.set(i+5); }
+    for (size_t i = 0; i < 5; i++) { if(hc[i]==D) bits.set(i+10); }
+    return bits;
+  }
+
+  uint64_t ID() const {
+    return ToBits().to_ullong();
   }
 
   bool operator<(const StateN3M5 &rhs) const {
@@ -120,7 +130,6 @@ class StateN3M5 {
 };
 
 
-/*
 class StrategyN3M5 {
  public:
   explicit StrategyN3M5(const std::array<Action, 64> &acts); // construct a strategy from a list of actions
@@ -158,7 +167,6 @@ class StrategyN3M5 {
   std::vector<StateN3M5> NextPossibleStates(StateN3M5 current) const;
   bool _Equivalent(size_t i, size_t j, UnionFind &uf_0, bool noisy) const;
 };
- */
 
 #endif //STRATEGY_N3M5_HPP
 

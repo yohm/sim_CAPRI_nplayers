@@ -8,7 +8,7 @@ void test_State() {
   assert(s.hb[0] == D && s.hb[1] == D && s.hb[2] == C && s.hb[3] == C && s.hb[4] == D);
   assert(s.hc[0] == C && s.hc[1] == C && s.hc[2] == C && s.hc[3] == C && s.hc[4] == C);
 
-  assert(s.ID() == "dcdcd_ddccd_ccccc");
+  assert(s.ToString() == "dcdcd_ddccd_ccccc");
 
   assert(s.NextState(D, C, D) == StateN3M5("ddcdc_cddcc_dcccc"));
 
@@ -27,7 +27,7 @@ void test_State() {
   auto prev = StateN3M5("ddddd_dcdcd_ccccc").PossiblePrevStates();
   assert(prev.size() == 8);
   std::set<std::string> prev_set;
-  for (const auto &st: prev) { prev_set.insert(st.ID()); }
+  for (const auto &st: prev) { prev_set.insert(st.ToString()); }
   std::set<std::string> expected = {"ddddc_cdcdc_ccccc", "ddddc_cdcdc_ccccd", "ddddc_cdcdd_ccccc", "ddddc_cdcdd_ccccd",
                                     "ddddd_cdcdc_ccccc", "ddddd_cdcdc_ccccd", "ddddd_cdcdd_ccccc", "ddddd_cdcdd_ccccd"};
   assert(prev_set == expected);
