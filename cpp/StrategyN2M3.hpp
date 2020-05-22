@@ -14,41 +14,41 @@
 #include "Action.hpp"
 #include "DirectedGraph.hpp"
 
-#ifndef STRATEGY_HPP
-#define STRATEGY_HPP
+#ifndef STRATEGY_N2M3_HPP
+#define STRATEGY_N2M3_HPP
 
-class Strategy;
+class StrategyN2M3;
 
-class State {
+class StateN2M3 {
  public:
-  State(Action _a_3, Action _a_2, Action _a_1, Action _b_3, Action _b_2, Action _b_1) :
+  StateN2M3(Action _a_3, Action _a_2, Action _a_1, Action _b_3, Action _b_2, Action _b_1) :
       a_3(_a_3), a_2(_a_2), a_1(_a_1), b_3(_b_3), b_2(_b_2), b_1(_b_1) {};
-  State(uint64_t id) :  // upper bit [a_3,a_2,a_1,b_3,b_2,b_1] lower bit
-      a_3(((id >> 5u) & 1) ? D : C), a_2(((id >> 4u) & 1) ? D : C), a_1(((id >> 3u) & 1) ? D : C),
-      b_3(((id >> 2u) & 1) ? D : C), b_2(((id >> 1u) & 1) ? D : C), b_1(((id >> 0u) & 1) ? D : C) {};
-  State(const char str[6]) :
+  StateN2M3(uint64_t id) :  // upper bit [a_3,a_2,a_1,b_3,b_2,b_1] lower bit
+      a_3(((id >> 5u) & 1ull) ? D : C), a_2(((id >> 4u) & 1ull) ? D : C), a_1(((id >> 3u) & 1ull) ? D : C),
+      b_3(((id >> 2u) & 1ull) ? D : C), b_2(((id >> 1u) & 1ull) ? D : C), b_1(((id >> 0u) & 1ull) ? D : C) {};
+  StateN2M3(const char str[6]) :
       a_3(C2A(str[0])), a_2(C2A(str[1])), a_1(C2A(str[2])),
       b_3(C2A(str[3])), b_2(C2A(str[4])), b_1(C2A(str[5])) {};
   const Action a_3, a_2, a_1, b_3, b_2, b_1;
 
-  bool operator==(const State &rhs) const {
+  bool operator==(const StateN2M3 &rhs) const {
     return (a_3 == rhs.a_3 && a_2 == rhs.a_2 && a_1 == rhs.a_1 && b_3 == rhs.b_3 && b_2 == rhs.b_2 && b_1 == rhs.b_1);
   }
-  friend std::ostream &operator<<(std::ostream &os, const State &s) {
+  friend std::ostream &operator<<(std::ostream &os, const StateN2M3 &s) {
     os << s.a_3 << s.a_2 << s.a_1 << s.b_3 << s.b_2 << s.b_1;
     return os;
   };
 
-  State NextState(Action act_a, Action act_b) const {
-    return State(a_2, a_1, act_a, b_2, b_1, act_b);
+  StateN2M3 NextState(Action act_a, Action act_b) const {
+    return StateN2M3(a_2, a_1, act_a, b_2, b_1, act_b);
   };
 
-  std::array<State, 4> PossiblePrevStates() const {
-    std::array<State, 4> ans = {
-        State(C, a_3, a_2, C, b_3, b_2),
-        State(C, a_3, a_2, D, b_3, b_2),
-        State(D, a_3, a_2, C, b_3, b_2),
-        State(D, a_3, a_2, D, b_3, b_2)
+  std::array<StateN2M3, 4> PossiblePrevStates() const {
+    std::array<StateN2M3, 4> ans = {
+        StateN2M3(C, a_3, a_2, C, b_3, b_2),
+        StateN2M3(C, a_3, a_2, D, b_3, b_2),
+        StateN2M3(D, a_3, a_2, C, b_3, b_2),
+        StateN2M3(D, a_3, a_2, D, b_3, b_2)
     };
     return ans;
   }
@@ -63,15 +63,15 @@ class State {
     }
   }
 
-  State SwapAB() const { return State(b_3, b_2, b_1, a_3, a_2, a_1); } // state from B's viewpoint
+  StateN2M3 SwapAB() const { return StateN2M3(b_3, b_2, b_1, a_3, a_2, a_1); } // state from B's viewpoint
 
-  std::array<State, 2> NoisedStates() const {
+  std::array<StateN2M3, 2> NoisedStates() const {
     Action a_1_n = (a_1 == C) ? D : C;
     Action b_1_n = (b_1 == C) ? D : C;
-    std::array<State, 2> ans = {State(a_3, a_2, a_1_n, b_3, b_2, b_1), State(a_3, a_2, a_1, b_3, b_2, b_1_n)};
+    std::array<StateN2M3, 2> ans = {StateN2M3(a_3, a_2, a_1_n, b_3, b_2, b_1), StateN2M3(a_3, a_2, a_1, b_3, b_2, b_1_n)};
     return ans;
   }
-  int NumDiffInT1(const State &other) const {
+  int NumDiffInT1(const StateN2M3 &other) const {
     if (a_3 != other.a_3 || a_2 != other.a_2 || b_3 != other.b_3 || b_2 != other.b_2) {
       return -1;
     } else {
@@ -92,7 +92,7 @@ class State {
     if (b_1 == D) { id += 1ull << 0u; }
     return id;
   }
-  bool operator<(const State &rhs) const {
+  bool operator<(const StateN2M3 &rhs) const {
     return (ID() < rhs.ID());
   }
 };
@@ -129,43 +129,43 @@ class UnionFind {
   std::vector<size_t> parent;
 };
 
-class Strategy {
+class StrategyN2M3 {
  public:
-  explicit Strategy(const std::array<Action, 64> &acts); // construct a strategy from a list of actions
-  explicit Strategy(const char acts[64]);
+  explicit StrategyN2M3(const std::array<Action, 64> &acts); // construct a strategy from a list of actions
+  explicit StrategyN2M3(const char acts[64]);
   std::array<Action, 64> actions;
 
   std::string ToString() const;
-  friend std::ostream &operator<<(std::ostream &os, const Strategy &strategy);
-  bool operator==(const Strategy &rhs) const {
+  friend std::ostream &operator<<(std::ostream &os, const StrategyN2M3 &strategy);
+  bool operator==(const StrategyN2M3 &rhs) const {
     for (size_t i = 0; i < 64; i++) { if (actions[i] != rhs.actions[i]) return false; }
     return true;
   }
 
-  Action ActionAt(const State &s) const { return actions[s.ID()]; }
-  void SetAction(const State &s, Action a) { actions[s.ID()] = a; }
+  Action ActionAt(const StateN2M3 &s) const { return actions[s.ID()]; }
+  void SetAction(const StateN2M3 &s, Action a) { actions[s.ID()] = a; }
   bool IsDefensible() const;  // check defensibility.
   bool IsDefensibleDFA() const; // check defensibility using DFA minimization
   // get stationary state. When coplayer is nullptr, it is set to self
-  std::array<double, 64> StationaryState(double e = 0.0001, const Strategy *coplayer = nullptr) const;
-  std::array<double, 64> StationaryState2(double e = 0.0001, const Strategy *coplayer = nullptr) const;
+  std::array<double, 64> StationaryState(double e = 0.0001, const StrategyN2M3 *coplayer = nullptr) const;
+  std::array<double, 64> StationaryState2(double e = 0.0001, const StrategyN2M3 *coplayer = nullptr) const;
   // check efficiency. all actions must be fixed
   bool IsEfficient(double e = 0.00001, double th = 0.95) const { return (StationaryState(e)[0] > th); }
   bool IsEfficientTopo() const; // check efficiency using ITG
   bool IsDistinguishable(double e = 0.00001, double th = 0.95) const {
-    const Strategy allc("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
+    const StrategyN2M3 allc("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
     return (StationaryState(e, &allc)[0] < th);
   };  // check distinguishability against AllC
   bool IsDistinguishableTopo() const; // check distinguishability using the transition graph
   DirectedGraph ITG() const;  // construct g(S,S).
   std::array<int, 64> DestsOfITG() const; // Trace g(S,S) from node i. Destination is stored in i'th element.
-  int NextITGState(const State &s) const; // Trace the intra-transition graph by one step
+  int NextITGState(const StateN2M3 &s) const; // Trace the intra-transition graph by one step
   UnionFind MinimizeDFA(bool noisy = false) const;
  private:
   typedef std::array<std::array<int8_t, 64>, 64> d_matrix_t;
-  std::vector<State> NextPossibleStates(State current) const;
+  std::vector<StateN2M3> NextPossibleStates(StateN2M3 current) const;
   bool _Equivalent(size_t i, size_t j, UnionFind &uf_0, bool noisy) const;
 };
 
-#endif //STRATEGY_HPP
+#endif //STRATEGY_N2M3_HPP
 

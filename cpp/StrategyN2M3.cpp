@@ -1,33 +1,33 @@
 #include <iostream>
 #include <set>
 #include <map>
-#include "Strategy.hpp"
+#include "StrategyN2M3.hpp"
 
-Strategy::Strategy(const std::array<Action, 64> &acts) : actions(acts) {}
+StrategyN2M3::StrategyN2M3(const std::array<Action, 64> &acts) : actions(acts) {}
 
-Strategy::Strategy(const char acts[64]) {
+StrategyN2M3::StrategyN2M3(const char acts[64]) {
   for (size_t i = 0; i < 64; i++) {
     actions[i] = C2A(acts[i]);
   }
 }
 
-std::vector<State> Strategy::NextPossibleStates(State current) const {
-  std::vector<State> next_states;
+std::vector<StateN2M3> StrategyN2M3::NextPossibleStates(StateN2M3 current) const {
+  std::vector<StateN2M3> next_states;
   Action act_a = ActionAt(current);
   next_states.push_back(current.NextState(act_a, C));
   next_states.push_back(current.NextState(act_a, D));
   return std::move(next_states);
 }
 
-std::ostream &operator<<(std::ostream &os, const Strategy &strategy) {
+std::ostream &operator<<(std::ostream &os, const StrategyN2M3 &strategy) {
   for (size_t i = 0; i < 64; i++) {
-    os << strategy.actions[i] << '|' << State(i) << "  ";
+    os << strategy.actions[i] << '|' << StateN2M3(i) << "  ";
     if (i % 8 == 7) { os << std::endl; }
   }
   return os;
 }
 
-std::string Strategy::ToString() const {
+std::string StrategyN2M3::ToString() const {
   char c[65];
   for (size_t i = 0; i < 64; i++) {
     c[i] = A2C(actions[i]);
@@ -38,7 +38,7 @@ std::string Strategy::ToString() const {
 
 inline int8_t MIN(int8_t a, int8_t b) { return (a < b) ? a : b; }
 
-bool Strategy::IsDefensible() const {
+bool StrategyN2M3::IsDefensible() const {
   const size_t N = 64;
 
   d_matrix_t d;
@@ -52,8 +52,8 @@ bool Strategy::IsDefensible() const {
   }
 
   for (size_t i = 0; i < N; i++) {
-    State si(i);
-    std::vector<State> sjs = NextPossibleStates(si);
+    StateN2M3 si(i);
+    std::vector<StateN2M3> sjs = NextPossibleStates(si);
     for (auto sj: sjs) {
       size_t j = sj.ID();
       d[i][j] = si.RelativePayoff();
@@ -72,7 +72,7 @@ bool Strategy::IsDefensible() const {
   return true;
 }
 
-bool Strategy::IsDefensibleDFA() const {
+bool StrategyN2M3::IsDefensibleDFA() const {
   const auto autom = MinimizeDFA(false).to_map();
   std::vector<std::set<size_t> > groups;
   groups.reserve(autom.size());
@@ -84,7 +84,7 @@ bool Strategy::IsDefensibleDFA() const {
   std::vector<std::vector<int> > d(AN);
   for (size_t i = 0; i < AN; i++) { d[i].resize(AN, INF); }
 
-  auto group_index_of_state = [&groups](const State &ns) -> size_t {
+  auto group_index_of_state = [&groups](const StateN2M3 &ns) -> size_t {
     auto found = std::find_if(groups.cbegin(), groups.cend(), [&ns](std::set<size_t> g) {
       return g.find(ns.ID()) != g.cend();
     });
@@ -94,10 +94,10 @@ bool Strategy::IsDefensibleDFA() const {
 
   // set distance matrix
   for (size_t i = 0; i < AN; i++) {
-    State sa = State(*groups[i].cbegin());  // get a first state
+    StateN2M3 sa = StateN2M3(*groups[i].cbegin());  // get a first state
     Action act_a = ActionAt(sa);  // A's action is same for all states in this group
     for (const auto act_b: std::array<Action, 2>({C, D})) {
-      State ns = sa.NextState(act_a, act_b);
+      StateN2M3 ns = sa.NextState(act_a, act_b);
       size_t j = group_index_of_state(ns);
       d[i][j] = MIN(d[i][j], ns.RelativePayoff());
     }
@@ -115,19 +115,19 @@ bool Strategy::IsDefensibleDFA() const {
   return true;
 }
 
-std::array<int, 64> Strategy::DestsOfITG() const {
+std::array<int, 64> StrategyN2M3::DestsOfITG() const {
   std::array<int, 64> dests = {};
   std::array<bool, 64> fixed = {false};
 
   for (int i = 0; i < 64; i++) {
     std::array<bool, 64> visited = {false}; // initialize by false
     visited[i] = true;
-    State init(i);
+    StateN2M3 init(i);
     int next = NextITGState(init);
     while (next >= 0) {
       if (visited[next] || fixed[next]) { break; }
       visited[next] = true;
-      next = NextITGState(State(next));
+      next = NextITGState(StateN2M3(next));
     }
     int d = next;
     if (next >= 0) {
@@ -143,7 +143,7 @@ std::array<int, 64> Strategy::DestsOfITG() const {
   return dests;
 }
 
-int Strategy::NextITGState(const State &s) const {
+int StrategyN2M3::NextITGState(const StateN2M3 &s) const {
   Action move_a = ActionAt(s);
   Action move_b = ActionAt(s.SwapAB());
   if ((move_a == C || move_a == D) && (move_b == C || move_b == D)) {
@@ -152,19 +152,19 @@ int Strategy::NextITGState(const State &s) const {
   return -1;
 }
 
-std::array<double, 64> Strategy::StationaryState2(double e, const Strategy *coplayer) const {
+std::array<double, 64> StrategyN2M3::StationaryState2(double e, const StrategyN2M3 *coplayer) const {
   if (coplayer == NULL) { coplayer = this; }
   Eigen::Matrix<double, 65, 64> A;
 
   for (int i = 0; i < 64; i++) {
-    const State si(i);
+    const StateN2M3 si(i);
     for (int j = 0; j < 64; j++) {
       // calculate transition probability from j to i
-      const State sj(j);
-      // State next = NextITGState(sj);
+      const StateN2M3 sj(j);
+      // StateN2M3 next = NextITGState(sj);
       Action act_a = ActionAt(sj);
       Action act_b = coplayer->ActionAt(sj.SwapAB());
-      State next = sj.NextState(act_a, act_b);
+      StateN2M3 next = sj.NextState(act_a, act_b);
       int d = next.NumDiffInT1(si);
       if (d < 0) {
         A(i, j) = 0.0;
@@ -201,20 +201,20 @@ std::array<double, 64> Strategy::StationaryState2(double e, const Strategy *copl
   return ans;
 }
 
-std::array<double, 64> Strategy::StationaryState(double e, const Strategy *coplayer) const {
+std::array<double, 64> StrategyN2M3::StationaryState(double e, const StrategyN2M3 *coplayer) const {
   if (coplayer == NULL) { coplayer = this; }
 
   typedef Eigen::Triplet<double> T;
   std::vector<T> tripletVec;
 
   for (int i = 0; i < 64; i++) {
-    const State si(i);
+    const StateN2M3 si(i);
     for (int j = 0; j < 64; j++) {
       // calculate transition probability from j to i
-      const State sj(j);
+      const StateN2M3 sj(j);
       Action act_a = ActionAt(sj);
       Action act_b = coplayer->ActionAt(sj.SwapAB());
-      State next = sj.NextState(act_a, act_b);
+      StateN2M3 next = sj.NextState(act_a, act_b);
       int d = next.NumDiffInT1(si);
       double aij = 0.0;
       if (d < 0) {
@@ -259,11 +259,11 @@ std::array<double, 64> Strategy::StationaryState(double e, const Strategy *copla
   return ans;
 }
 
-DirectedGraph Strategy::ITG() const {
+DirectedGraph StrategyN2M3::ITG() const {
   DirectedGraph g(64);
   for (int i = 0; i < 64; i++) {
-    State sa(i);
-    State sb = sa.SwapAB();
+    StateN2M3 sa(i);
+    StateN2M3 sb = sa.SwapAB();
     int j = sb.ID();
     std::vector<Action> acts_a, acts_b;
     acts_a.push_back(actions[i]);
@@ -280,7 +280,7 @@ DirectedGraph Strategy::ITG() const {
   return std::move(g);
 }
 
-bool Strategy::IsEfficientTopo() const {
+bool StrategyN2M3::IsEfficientTopo() const {
   if (actions[0] != C) { return false; }
 
   auto UpdateGn = [](DirectedGraph &gn) {
@@ -325,8 +325,8 @@ bool Strategy::IsEfficientTopo() const {
 
   return true;
 }
-bool Strategy::IsDistinguishableTopo() const {
-  const Strategy allc("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
+bool StrategyN2M3::IsDistinguishableTopo() const {
+  const StrategyN2M3 allc("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
   if (actions[0] != C) { return true; }
 
   auto UpdateGn = [](DirectedGraph &gn) {
@@ -354,8 +354,8 @@ bool Strategy::IsDistinguishableTopo() const {
 
   DirectedGraph gn(64);
   for (int i = 0; i < 64; i++) {
-    State sa(i);
-    State sb = sa.SwapAB();
+    StateN2M3 sa(i);
+    StateN2M3 sb = sa.SwapAB();
     Action act_a = ActionAt(sa);
     Action act_b = allc.ActionAt(sb);
     assert(act_b == C);  // assert AllC
@@ -382,7 +382,7 @@ bool Strategy::IsDistinguishableTopo() const {
   return false;
 }
 
-UnionFind Strategy::MinimizeDFA(bool noisy) const {
+UnionFind StrategyN2M3::MinimizeDFA(bool noisy) const {
   UnionFind uf_0(64);
   // initialize grouping by the action c/d
   size_t c_rep = -1, d_rep = -1;
@@ -425,18 +425,18 @@ UnionFind Strategy::MinimizeDFA(bool noisy) const {
   return uf_0;
 }
 
-bool Strategy::_Equivalent(size_t i, size_t j, UnionFind &uf_0, bool noisy) const {
+bool StrategyN2M3::_Equivalent(size_t i, size_t j, UnionFind &uf_0, bool noisy) const {
   assert(actions[i] == actions[j]);
   Action act_a = actions[i];
   Action err_a = (act_a == C) ? D : C;
   std::array<Action, 2> acts_b = {C, D};
   for (const Action &act_b : acts_b) {
-    size_t ni = State(i).NextState(act_a, act_b).ID();
-    size_t nj = State(j).NextState(act_a, act_b).ID();
+    size_t ni = StateN2M3(i).NextState(act_a, act_b).ID();
+    size_t nj = StateN2M3(j).NextState(act_a, act_b).ID();
     if (uf_0.root(ni) != uf_0.root(nj)) { return false; }
     if (noisy) {
-      size_t ni2 = State(i).NextState(err_a, act_b).ID();
-      size_t nj2 = State(j).NextState(err_a, act_b).ID();
+      size_t ni2 = StateN2M3(i).NextState(err_a, act_b).ID();
+      size_t nj2 = StateN2M3(j).NextState(err_a, act_b).ID();
       if (uf_0.root(ni2) != uf_0.root(nj2)) { return false; }
     }
   }

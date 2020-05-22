@@ -1,9 +1,9 @@
 #include <iostream>
 #include <cassert>
-#include "Strategy.hpp"
+#include "StrategyN2M3.hpp"
 
 void test_State() {
-  State s("ddcdcd");
+  StateN2M3 s("ddcdcd");
   assert(s.a_3 == D);
   assert(s.a_2 == D);
   assert(s.a_1 == C);
@@ -14,25 +14,25 @@ void test_State() {
   uint64_t id = s.ID();
   assert(id == 53);
 
-  assert(s == State(id));
+  assert(s == StateN2M3(id));
 
-  assert(s.NextState(D, C) == State("dcdcdc"));
+  assert(s.NextState(D, C) == StateN2M3("dcdcdc"));
 
   assert(s.RelativePayoff() == -1);
-  assert(State("ddcddc").RelativePayoff() == 0);
-  assert(State("ccdcdc").RelativePayoff() == 1);
+  assert(StateN2M3("ddcddc").RelativePayoff() == 0);
+  assert(StateN2M3("ccdcdc").RelativePayoff() == 1);
 
-  assert(State("cdcdcd").SwapAB() == State("dcdcdc"));
+  assert(StateN2M3("cdcdcd").SwapAB() == StateN2M3("dcdcdc"));
 
-  auto noised = State("ddccdc").NoisedStates();
-  assert(noised[0] == State("dddcdc"));
-  assert(noised[1] == State("ddccdd"));
+  auto noised = StateN2M3("ddccdc").NoisedStates();
+  assert(noised[0] == StateN2M3("dddcdc"));
+  assert(noised[1] == StateN2M3("ddccdd"));
 
-  auto prev = State("ddccdc").PossiblePrevStates();
-  assert(prev[0] == State("cddccd"));
-  assert(prev[1] == State("cdddcd"));
-  assert(prev[2] == State("dddccd"));
-  assert(prev[3] == State("ddddcd"));
+  auto prev = StateN2M3("ddccdc").PossiblePrevStates();
+  assert(prev[0] == StateN2M3("cddccd"));
+  assert(prev[1] == StateN2M3("cdddcd"));
+  assert(prev[2] == StateN2M3("dddccd"));
+  assert(prev[3] == StateN2M3("ddddcd"));
 }
 
 void test_Strategy() {
@@ -46,7 +46,7 @@ void test_Strategy() {
       C, C, C, C, D, D, D, D,
       C, C, C, C, D, D, D, D
   };
-  Strategy s1(acts);
+  StrategyN2M3 s1(acts);
   assert(s1.actions[0] == C);
   assert(s1.actions[7] == D);
   assert(s1.actions[59] == C);
@@ -54,15 +54,15 @@ void test_Strategy() {
 
   std::string bits("ccccddddccccddddccccddddccccddddccccddddccccddddccccddddccccdddd");
   assert(s1.ToString() == bits);
-  assert(s1 == Strategy(bits.c_str()));
+  assert(s1 == StrategyN2M3(bits.c_str()));
 
-  assert(s1.ActionAt(State("cccccc")) == C);
+  assert(s1.ActionAt(StateN2M3("cccccc")) == C);
   assert(s1.ActionAt("ddddcc") == D);  // implicit conversion
 
   assert(s1.IsDefensible());
 
   {
-    Strategy alld("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd");
+    StrategyN2M3 alld("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd");
     assert(alld.IsDefensible() == true);
     assert(alld.IsDefensibleDFA() == true);
     assert(alld.IsEfficient() == false);
@@ -83,7 +83,7 @@ void test_Strategy() {
     assert(full_automaton.size() == 1);
   }
   {
-    Strategy allc("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
+    StrategyN2M3 allc("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
     assert(allc.IsDefensible() == false);
     assert(allc.IsDefensibleDFA() == false);
     assert(allc.IsEfficient() == true);
@@ -104,14 +104,14 @@ void test_Strategy() {
     assert(full_automaton.size() == 1);
   }
   {
-    Strategy tft("cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+    StrategyN2M3 tft("cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
     assert(tft.IsDefensible() == true);
     assert(tft.IsDefensibleDFA() == true);
     assert(tft.IsEfficient() == false);
     assert(tft.IsEfficientTopo() == false);
     auto dests = tft.DestsOfITG();
     for (int i: dests) {
-      assert(i == 0 || i == 63 || State("cdcdcd").ID());
+      assert(i == 0 || i == 63 || StateN2M3("cdcdcd").ID());
     } // all goes to either cccccc, dddddd, cdcdcd
 
     auto stat = tft.StationaryState(0.001);
@@ -133,7 +133,7 @@ void test_Strategy() {
     assert(full_automaton.at(1).size() == 32);
   }
   {
-    Strategy wsls("cdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdc");
+    StrategyN2M3 wsls("cdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdc");
     assert(wsls.IsDefensible() == false);
     assert(wsls.IsDefensibleDFA() == false);
     assert(wsls.IsEfficient() == true);
@@ -158,7 +158,7 @@ void test_Strategy() {
     assert(full_automaton.at(1).size() == 32);
   }
   {
-    Strategy tf2t("cccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccd"); // tf2t
+    StrategyN2M3 tf2t("cccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccd"); // tf2t
     assert(tf2t.IsDefensible() == false);
     assert(tf2t.IsDefensibleDFA() == false);
     assert(tf2t.IsEfficient() == true);
@@ -187,7 +187,7 @@ void test_Strategy() {
   }
 
   {
-    Strategy s("ccddcdddccccdccdcdddddccdccccccdcdccccdcdccddccdcccdddccdccccccd");
+    StrategyN2M3 s("ccddcdddccccdccdcdddddccdccccccdcdccccdcdccddccdcccdddccdccccccd");
     assert(s.IsEfficient() == true);
     auto stat = s.StationaryState(0.0001);
     assert(s.IsEfficientTopo() == true);
@@ -209,7 +209,7 @@ void test_TFTATFT() {
       {16, C}, {17, D}, {18, C}, {19, C},
       {24, D}, {25, C}, {26, C}, {27, D}
   };
-  Strategy tft_atft("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
+  StrategyN2M3 tft_atft("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
   int mask = 27; // 011011
   for (int i = 0; i < 64; i++) {
     int masked = i & mask;
@@ -253,7 +253,7 @@ void test_CAPRI() {
   // dcd : dddd dddd
   // ddc : dddd cdcc
   // ddd : dddd ddcd
-  Strategy capri("cdddcdddcdcddddddcddcdddddddddddcdcdcdcdddddddddddddcdccddddddcd");
+  StrategyN2M3 capri("cdddcdddcdcddddddcddcdddddddddddcdcdcdcdddddddddddddcdccddddddcd");
 
   assert(capri.IsDefensible());
   assert(capri.IsDefensibleDFA());
@@ -264,7 +264,7 @@ void test_CAPRI() {
   assert(capri.IsDistinguishableTopo());
 
   { // distinguishable against WSLS
-    Strategy wsls("cdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdc");
+    StrategyN2M3 wsls("cdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdc");
     const auto stat = capri.StationaryState(1.0e-6, &wsls);
     assert(std::abs(stat[61] - 0.5) < 0.01);  // ddd,dcd ~ 0.5
     assert(std::abs(stat[58] - 0.5) < 0.01);  // ddd,cdc ~ 0.5
@@ -278,7 +278,7 @@ void test_CAPRI() {
 }
 
 void test_EfficiencyDefensible() {
-  Strategy s1("cdddddddcdcdddcddcddcdddddccdcddddcdcdddddddddcdddddddcddddcdddd");  // efficient and defensible
+  StrategyN2M3 s1("cdddddddcdcdddcddcddcdddddccdcddddcdcdddddddddcdddddddcddddcdddd");  // efficient and defensible
   assert(s1.IsEfficient());
   assert(s1.IsDefensible());
   assert(s1.IsDefensibleDFA());
@@ -287,7 +287,7 @@ void test_EfficiencyDefensible() {
 }
 
 int main() {
-  std::cout << "Testing Strategy class" << std::endl;
+  std::cout << "Testing StrategyN2M3 class" << std::endl;
 
   test_State();
   test_Strategy();
