@@ -192,12 +192,6 @@ std::array<double, 64> StrategyN2M3::StationaryState2(double e, const StrategyN2
   for (int i = 0; i < 64; i++) {
     ans[i] = x(i);
   }
-  /*
-  std::cerr << "ans[0] , ans[63] : " << ans[0] << ' ' << ans[63] << std::endl;
-  if(ans[0] > 0.95) {
-    assert(true);
-  }
-   */
   return ans;
 }
 
@@ -442,4 +436,3 @@ bool StrategyN2M3::_Equivalent(size_t i, size_t j, UnionFind &uf_0, bool noisy) 
   }
   return true;
 }
-
