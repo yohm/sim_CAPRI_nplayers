@@ -145,9 +145,9 @@ class StateN3M5 {
   }
 };
 
-/*
+
 class StrategyN3M5 {
-  const size_t N = 32768;
+  static const size_t N = 1ull << 15ull; // == 32768
  public:
   explicit StrategyN3M5(const std::bitset<N> &actions); // construct a strategy from a list of actions. 0=>c,1=>d
   std::bitset<N> actions;
@@ -159,30 +159,28 @@ class StrategyN3M5 {
     return true;
   }
 
-  Action ActionAt(const StateN3M5 &s) const { return actions[s.ID()]; }
-  void SetAction(const StateN3M5 &s, Action a) { actions[s.ID()] = a; }
+  Action ActionAt(const StateN3M5 &s) const { return actions[s.ID()] ? D : C; }
+  void SetAction(const StateN3M5 &s, Action a) { if (a == C) { actions.reset(s.ID()); } else { actions.set(s.ID());} }
   bool IsDefensible() const;  // check defensibility.
   bool IsDefensibleDFA() const; // check defensibility using DFA minimization
   // get stationary state. When coplayer is nullptr, it is set to self
-  std::array<double, 64> StationaryState(double e = 0.0001, const StrategyN3M5 *coplayer = nullptr) const;
-  std::array<double, 64> StationaryState2(double e = 0.0001, const StrategyN3M5 *coplayer = nullptr) const;
+  std::array<double, N> StationaryState(double e = 0.0001, const StrategyN3M5 *B = nullptr, const StrategyN3M5 *C = nullptr) const;
+  std::array<double, N> StationaryState2(double e = 0.0001, const StrategyN3M5 *B = nullptr, const StrategyN3M5 *C = nullptr) const;
   // check efficiency. all actions must be fixed
   bool IsEfficient(double e = 0.00001, double th = 0.95) const { return (StationaryState(e)[0] > th); }
   bool IsEfficientTopo() const; // check efficiency using ITG
   bool IsDistinguishable(double e = 0.00001, double th = 0.95) const {
-    const StrategyN3M5 allc("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
-    return (StationaryState(e, &allc)[0] < th);
+    const StrategyN3M5 allc(std::bitset<N>(0ull));
+    return (StationaryState(e, &allc, &allc)[0] < th);
   };  // check distinguishability against AllC
   bool IsDistinguishableTopo() const; // check distinguishability using the transition graph
   DirectedGraph ITG() const;  // construct g(S,S).
-  std::array<int, 64> DestsOfITG() const; // Trace g(S,S) from node i. Destination is stored in i'th element.
-  int NextITGState(const StateN3M5 &s) const; // Trace the intra-transition graph by one step
+  std::array<uint64_t , StrategyN3M5::N> DestsOfITG() const; // Trace g(S,S) from node i. Destination is stored in i'th element.
+  uint64_t NextITGState(const StateN3M5 &s) const; // Trace the intra-transition graph by one step
   UnionFind MinimizeDFA(bool noisy = false) const;
  private:
-  typedef std::array<std::array<int8_t, 64>, 64> d_matrix_t;
   std::vector<StateN3M5> NextPossibleStates(StateN3M5 current) const;
   bool _Equivalent(size_t i, size_t j, UnionFind &uf_0, bool noisy) const;
 };
- */
 
 #endif //STRATEGY_N3M5_HPP
