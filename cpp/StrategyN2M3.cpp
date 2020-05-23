@@ -257,20 +257,11 @@ DirectedGraph StrategyN2M3::ITG() const {
   DirectedGraph g(64);
   for (int i = 0; i < 64; i++) {
     StateN2M3 sa(i);
-    StateN2M3 sb = sa.SwapAB();
-    int j = sb.ID();
-    std::vector<Action> acts_a, acts_b;
-    acts_a.push_back(actions[i]);
-    acts_b.push_back(actions[j]);
-
-    for (Action act_a: acts_a) {
-      for (Action act_b: acts_b) {
-        int n = sa.NextState(act_a, act_b).ID();
-        g.AddLink(i, n);
-      }
-    }
+    Action act_a = ActionAt(sa);
+    Action act_b = ActionAt(sa.SwapAB());
+    int n = sa.NextState(act_a, act_b).ID();
+    g.AddLink(i, n);
   }
-
   return std::move(g);
 }
 
@@ -281,8 +272,9 @@ bool StrategyN2M3::IsEfficientTopo() const {
     components_t sinks = gn.SinkSCCs();
     for (const comp_t &sink: sinks) {
       for (long from: sink) {
-        for (int i = 0; i < 2; i++) {
-          long to = (unsigned long) from ^((i == 0) ? 1UL : 8UL);
+        StateN2M3 s_from(from);
+        for (const auto &s_to : s_from.NoisedStates()) {
+          uint64_t to = s_to.ID();
           if (!gn.HasLink(from, to)) {
             gn.AddLink(from, to);
           }
@@ -327,8 +319,9 @@ bool StrategyN2M3::IsDistinguishableTopo() const {
     components_t sinks = gn.SinkSCCs();
     for (const comp_t &sink: sinks) {
       for (long from: sink) {
-        for (int i = 0; i < 2; i++) {
-          long to = (unsigned long) from ^((i == 0) ? 1UL : 8UL);
+        StateN2M3 s_from(from);
+        for (const auto &s_to : s_from.NoisedStates()) {
+          uint64_t to = s_to.ID();
           if (!gn.HasLink(from, to)) {
             gn.AddLink(from, to);
           }
