@@ -20,49 +20,65 @@
 
 class StrategyN3M5;
 
-typedef std::array<Action,5> HistoM5;
+typedef std::bitset<5> HistoM5;
 
 class StateN3M5 {
  public:
   StateN3M5(const HistoM5 &a_histo, const HistoM5 &b_histo, const HistoM5 &c_histo) :
       ha(a_histo), hb(b_histo), hc(c_histo) {};
-  StateN3M5(const std::string &str) :  // format "ccccc_dddcc_cdccd" last action comes first
-      ha({C2A(str[0]), C2A(str[1]), C2A(str[2]), C2A(str[3]), C2A(str[4])}),
-      hb({C2A(str[6]), C2A(str[7]), C2A(str[8]), C2A(str[9]), C2A(str[10])}),
-      hc({C2A(str[12]), C2A(str[13]), C2A(str[14]), C2A(str[15]), C2A(str[16])})
-      { assert(str.size() == 17 && str[5] == '_' && str[11] == '_'); }
-  const HistoM5 ha, hb, hc;
+  StateN3M5(const std::string &str) { // format "ccccc_dddcc_cdccd" (a0,a1,a2,...c3,c4) last action comes first
+    assert(str.size() == 17 && str[5] == '_' && str[11] == '_');
+    std::string sa = str.substr(0, 5), sb = str.substr(6, 5), sc = str.substr(12, 5);
+    auto s_to_binary = [](std::string s)->HistoM5 {
+      std::reverse(s.begin(), s.end());
+      std::replace(s.begin(), s.end(), 'c', '0');
+      std::replace(s.begin(), s.end(), 'd', '1');
+      return HistoM5(s);
+    };
+    ha = s_to_binary(sa); hb = s_to_binary(sb); hc = s_to_binary(sc);
+  }
+  StateN3M5(uint64_t i) { // (c4,c3,c2,....,a1,a0) the lowest bit is a0
+    uint64_t mask = 31ull;
+    ha = HistoM5(i & mask); hb = HistoM5((i>>5ul)&mask); hc = HistoM5((i>>10)&mask);
+  }
+  HistoM5 ha, hb, hc;
 
   bool operator==(const StateN3M5 &rhs) const {
     return (ha == rhs.ha && hb == rhs.hb && hc == rhs.hc);
   }
   friend std::ostream &operator<<(std::ostream &os, const StateN3M5 &s) {
-    os << s.ha[0] << s.ha[1] << s.ha[2] << s.ha[3] << s.ha[4] << '_';
-    os << s.hb[0] << s.hb[1] << s.hb[2] << s.hb[3] << s.hb[4] << '_';
-    os << s.hc[0] << s.hc[1] << s.hc[2] << s.hc[3] << s.hc[4];
+    auto to_s = [](const HistoM5 &h)->std::string {
+      std::string s = h.to_string();
+      std::reverse(s.begin(), s.end());
+      std::replace(s.begin(), s.end(), '0', 'c');
+      std::replace(s.begin(), s.end(), '1', 'd');
+      return s;
+    };
+    os << to_s(s.ha) << '_' << to_s(s.hb) << '_' << to_s(s.hc);
     return os;
   };
 
   StateN3M5 NextState(Action act_a, Action act_b, Action act_c) const {
-    HistoM5 nha = {act_a, ha[0], ha[1], ha[2], ha[3]};
-    HistoM5 nhb = {act_b, hb[0], hb[1], hb[2], hb[3]};
-    HistoM5 nhc = {act_c, hc[0], hc[1], hc[2], hc[3]};
+    HistoM5 nha = ha << 1;
+    HistoM5 nhb = hb << 1;
+    HistoM5 nhc = hc << 1;
+    if (act_a == D) { nha.set(0); }
+    if (act_b == D) { nhb.set(0); }
+    if (act_c == D) { nhc.set(0); }
     return StateN3M5(nha, nhb, nhc);
   };
 
   std::vector<StateN3M5> PossiblePrevStates() const {
     std::vector<StateN3M5> ans;
-
     for (size_t i = 0; i < 2; i++) {
-      Action act_a = (i == 0) ? C : D;
       for (size_t j = 0; j < 2; j++) {
-        Action act_b = (j == 0) ? C : D;
         for (size_t k = 0; k < 2; k++) {
-          Action act_c = (k == 0) ? C : D;
-
-          HistoM5 lha = {ha[1], ha[2], ha[3], ha[4], act_a};
-          HistoM5 lhb = {hb[1], hb[2], hb[3], hb[4], act_b};
-          HistoM5 lhc = {hc[1], hc[2], hc[3], hc[4], act_c};
+          HistoM5 lha = ha >> 1;
+          HistoM5 lhb = hb >> 1;
+          HistoM5 lhc = hc >> 1;
+          if (i == 1) { lha.set(4); }
+          if (j == 1) { lhb.set(4); }
+          if (k == 1) { lhc.set(4); }
           ans.emplace_back(lha, lhb, lhc);
         }
       }
@@ -71,11 +87,11 @@ class StateN3M5 {
   }
 
   int RelativePayoff(bool against_B = true) const {
-    Action a0 = ha[0];
-    Action b0 = against_B ? hb[0] : hc[0];
-    if (a0 == C && b0 == D) { return -1; }
-    else if (a0 == D && b0 == C) { return 1; }
-    else if (a0 == b0) { return 0; }
+    bool a0 = ha[0];
+    bool b0 = against_B ? hb[0] : hc[0];
+    if (a0 == false && b0 == true) { return -1; } // C,D
+    else if (a0 == true && b0 == false) { return 1; } // D,C
+    else if (a0 == b0) { return 0; }  // C,C or D,D
     else {
       assert(false);
       return -10000;
@@ -87,9 +103,9 @@ class StateN3M5 {
 
   std::array<StateN3M5, 3> NoisedStates() const {
     HistoM5 ha_n = ha, hb_n = hb, hc_n = hc;
-    ha_n[0] = (ha_n[0] == C) ? D : C;
-    hb_n[0] = (hb_n[0] == C) ? D : C;
-    hc_n[0] = (hc_n[0] == C) ? D : C;
+    ha_n ^= HistoM5(1ull);
+    hb_n ^= HistoM5(1ull);
+    hc_n ^= HistoM5(1ull);
     std::array<StateN3M5, 3> ans = {StateN3M5(ha_n, hb, hc), StateN3M5(ha, hb_n, hc), StateN3M5(ha, hb, hc_n)};
     return ans;
   }
@@ -114,9 +130,9 @@ class StateN3M5 {
 
   std::bitset<15> ToBits() const {
     std::bitset<15> bits(0ull);
-    for (size_t i = 0; i < 5; i++) { if(ha[i]==D) bits.set(i); }
-    for (size_t i = 0; i < 5; i++) { if(hb[i]==D) bits.set(i+5); }
-    for (size_t i = 0; i < 5; i++) { if(hc[i]==D) bits.set(i+10); }
+    bits ^= ha.to_ullong();
+    bits ^= (hb.to_ullong() << 5);
+    bits ^= (hc.to_ullong() <<10);
     return bits;
   }
 
@@ -129,12 +145,12 @@ class StateN3M5 {
   }
 };
 
-
+/*
 class StrategyN3M5 {
+  const size_t N = 32768;
  public:
-  explicit StrategyN3M5(const std::array<Action, 64> &acts); // construct a strategy from a list of actions
-  explicit StrategyN3M5(const char acts[64]);
-  std::array<Action, 64> actions;
+  explicit StrategyN3M5(const std::bitset<N> &actions); // construct a strategy from a list of actions. 0=>c,1=>d
+  std::bitset<N> actions;
 
   std::string ToString() const;
   friend std::ostream &operator<<(std::ostream &os, const StrategyN3M5 &strategy);
@@ -167,6 +183,6 @@ class StrategyN3M5 {
   std::vector<StateN3M5> NextPossibleStates(StateN3M5 current) const;
   bool _Equivalent(size_t i, size_t j, UnionFind &uf_0, bool noisy) const;
 };
+ */
 
 #endif //STRATEGY_N3M5_HPP
-

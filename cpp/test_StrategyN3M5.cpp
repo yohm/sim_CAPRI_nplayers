@@ -15,6 +15,10 @@ void test_State() {
   assert(s.RelativePayoff(true) == 0);
   assert(s.RelativePayoff(false) == 1);
 
+  assert(s.ID() == 0b000001001110101);
+
+  assert(StateN3M5(0b111110101011100) == StateN3M5("ccddd_cdcdc_ddddd"));
+
   assert(StateN3M5("ddddd_dcdcd_ccccc").StateFromB() == StateN3M5("dcdcd_ccccc_ddddd"));
   assert(StateN3M5("ddddd_dcdcd_ccccc").StateFromC() == StateN3M5("ccccc_ddddd_dcdcd"));
 
