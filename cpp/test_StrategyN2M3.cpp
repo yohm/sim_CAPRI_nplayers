@@ -35,7 +35,7 @@ void test_State() {
   assert(prev[3] == StateN2M3("ddddcd"));
 }
 
-void test_Strategy() {
+void test_AllC() {
   const std::array<Action, 64> acts = {
       C, C, C, C, D, D, D, D,
       C, C, C, C, D, D, D, D,
@@ -290,7 +290,7 @@ int main() {
   std::cout << "Testing StrategyN2M3 class" << std::endl;
 
   test_State();
-  test_Strategy();
+  test_AllC();
   test_EfficiencyDefensible();
   test_TFTATFT();
   test_CAPRI();

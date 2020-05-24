@@ -189,6 +189,7 @@ std::array<double, StrategyN3M5::N> StrategyN3M5::StationaryState2(double e, con
  */
 
 std::array<double, StrategyN3M5::N> StrategyN3M5::StationaryState(double e, const StrategyN3M5 *B, const StrategyN3M5 *C) const {
+  std::cerr << "calculating statinaryState" << std::endl;
   if (B == nullptr) { B = this; }
   if (C == nullptr) { C = this; }
 
@@ -196,7 +197,6 @@ std::array<double, StrategyN3M5::N> StrategyN3M5::StationaryState(double e, cons
   std::vector<T> tripletVec;
 
   for (int i = 0; i < N; i++) {
-    std::cerr << "i : " << i << std::endl;
     const StateN3M5 si(i);
     for (const StateN3M5 & sj : si.PossiblePrevStates()) {
       // calculate transition probability from j to i
@@ -237,12 +237,11 @@ std::array<double, StrategyN3M5::N> StrategyN3M5::StationaryState(double e, cons
   for (int i = 0; i < N-1; i++) { iVec.emplace_back(N-1, i, 1.0); }
   Eigen::SparseMatrix<double> I(N, N);
   I.setFromTriplets(iVec.cbegin(), iVec.cend());
-  std::cerr << iVec.rbegin()->col() << ' ' << iVec.rbegin()->row() << ' ' << iVec.rbegin()->value() << std::endl;
   A = A + I;
+  std::cerr << "  transition matrix has been created" << std::endl;
 
   Eigen::VectorXd b = Eigen::VectorXd::Zero(N);
   b(N-1) = 1.0;
-  std::cerr << b << std::endl;
 
   // Eigen::BiCGSTAB<Eigen::SparseMatrix<double> > solver;
   Eigen::BiCGSTAB<Eigen::SparseMatrix<double>, Eigen::IncompleteLUT<double> > solver;

@@ -44,51 +44,61 @@ void test_State() {
   assert(s1.NumDiffInT1(StateN3M5("ddddd_dcdcd_ccccd")) == -1);
 }
 
-void test_Strategy() {
+void test_AllC() {
+  std::bitset<32768> allc_b(0ull);
+  StrategyN3M5 allc(allc_b);
 
-  {
-    std::bitset<32768> allc_b(0ull);
-    StrategyN3M5 allc(allc_b);
+  std::string s = allc.ToString();
+  assert(s.size() == 32768);
+  bool b = true;
+  for (char c: s) { if(c != '0') { b = false; break; } }
+  assert(b);
 
-    std::string s = allc.ToString();
-    assert(s.size() == 32768);
-    bool b = true;
-    for (char c: s) { if(c != '0') { b = false; break; } }
-    assert(b);
+  assert(allc.ActionAt(StateN3M5(0)) == C);
+  assert(allc.ActionAt(StateN3M5(999)) == C);
+  assert(allc.ActionAt(StateN3M5(9999)) == C);
 
-    assert(allc.ActionAt(StateN3M5(0)) == C);
-    assert(allc.ActionAt(StateN3M5(999)) == C);
-    assert(allc.ActionAt(StateN3M5(9999)) == C);
+  assert(allc.IsEfficientTopo());
+  // assert(allc.IsEfficient());
 
-    assert(allc.IsEfficientTopo());
-    // assert(allc.IsEfficient());
+  // UnionFind uf = allc.MinimizeDFA(false);
+  // assert(uf.to_map().size() == 1);
+}
 
-    // UnionFind uf = allc.MinimizeDFA(false);
-    // assert(uf.to_map().size() == 1);
-  }
+#define myassert(x) do {                              \
+if (!(x)) {                                           \
+  printf("Assertion failed: %s, file %s, line %d\n"   \
+         , #x, __FILE__, __LINE__);                   \
+  exit(1);                                            \
+  }                                                   \
+} while (0)
 
-  /*
-  {
-    StrategyN2M3 alld("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd");
-    assert(alld.IsDefensible() == true);
-    assert(alld.IsDefensibleDFA() == true);
-    assert(alld.IsEfficient() == false);
-    assert(alld.IsEfficientTopo() == false);
-    auto dests = alld.DestsOfITG();
-    for (int i: dests) { assert(i == 63); } // all goes to dddddd
 
-    auto stat = alld.StationaryState(0.001);
-    for (int i = 0; i < 63; i++) { assert(stat[i] < 0.01); }
-    assert(stat[63] > 0.99);
+void test_AllD() {
+  const size_t N = StrategyN3M5::N;
+  std::bitset<N> alld_b;
+  for (size_t i = 0; i < N; i++) { alld_b.set(i); }
+  StrategyN3M5 alld(alld_b);
 
-    assert(alld.IsDistinguishable() == true);
-    assert(alld.IsDistinguishableTopo() == true);
+  myassert(alld.IsDefensibleDFA() == true);
+  myassert(alld.IsEfficientTopo() == false);
+  myassert(alld.IsEfficient() == false);
+  auto dests = alld.DestsOfITG();
+  for (int i: dests) { myassert(i == 32767); } // all goes to dddddd
 
-    const auto simp_automaton = alld.MinimizeDFA(false).to_map();
-    assert(simp_automaton.size() == 1);
-    const auto full_automaton = alld.MinimizeDFA(true).to_map();
-    assert(full_automaton.size() == 1);
-  }
+  auto stat = alld.StationaryState(0.00001);
+  for (int i = 0; i < 32767; i++) { myassert(stat[i] < 0.01); }
+  myassert(stat[32767] > 0.99);
+
+  myassert(alld.IsDistinguishable() == true);
+  myassert(alld.IsDistinguishableTopo() == true);
+
+  const auto simp_automaton = alld.MinimizeDFA(false).to_map();
+  assert(simp_automaton.size() == 1);
+  const auto full_automaton = alld.MinimizeDFA(true).to_map();
+  assert(full_automaton.size() == 1);
+}
+/*
   {
     StrategyN2M3 allc("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
     assert(allc.IsDefensible() == false);
@@ -199,9 +209,8 @@ void test_Strategy() {
     auto stat = s.StationaryState(0.0001);
     assert(s.IsEfficientTopo() == true);
   }
-   */
 }
-
+*/
 /*
 void test_TFTATFT() {
   // 0  *cc*cc : c , 16 *dc*cc : c
@@ -300,7 +309,8 @@ int main() {
   std::cout << "Testing StrategyN3M5 class" << std::endl;
 
   test_State();
-  test_Strategy();
+  // test_AllC();
+  test_AllD();
   // test_EfficiencyDefensible();
   // test_TFTATFT();
   // test_CAPRI();
