@@ -4,6 +4,8 @@
 #include "StrategyN3M5.hpp"
 
 
+const size_t StrategyN3M5::N;
+
 StrategyN3M5::StrategyN3M5(const std::bitset<N> &acts) : actions(acts) {}
 
 std::string StrategyN3M5::ToString() const {
@@ -23,8 +25,10 @@ std::ostream &operator<<(std::ostream &os, const StrategyN3M5 &strategy) {
 std::vector<StateN3M5> StrategyN3M5::NextPossibleStates(StateN3M5 current) const {
   std::vector<StateN3M5> next_states;
   Action act_a = ActionAt(current);
-  next_states.push_back(current.NextState(act_a, C));
-  next_states.push_back(current.NextState(act_a, D));
+  next_states.push_back(current.NextState(act_a, C, C));
+  next_states.push_back(current.NextState(act_a, C, D));
+  next_states.push_back(current.NextState(act_a, D, C));
+  next_states.push_back(current.NextState(act_a, D, D));
   return std::move(next_states);
 }
 
@@ -140,6 +144,7 @@ uint64_t StrategyN3M5::NextITGState(const StateN3M5 &s) const {
   return s.NextState(move_a, move_b, move_c).ID();
 }
 
+/*
 std::array<double, StrategyN3M5::N> StrategyN3M5::StationaryState2(double e, const StrategyN3M5 *B, const StrategyN3M5 *C) const {
   if (B == nullptr) { B = this; }
   if (C == nullptr) { C = this; }
@@ -181,6 +186,7 @@ std::array<double, StrategyN3M5::N> StrategyN3M5::StationaryState2(double e, con
   for (int i = 0; i < N; i++) { ans[i] = x(i); }
   return ans;
 }
+ */
 
 std::array<double, StrategyN3M5::N> StrategyN3M5::StationaryState(double e, const StrategyN3M5 *B, const StrategyN3M5 *C) const {
   if (B == nullptr) { B = this; }
@@ -190,10 +196,11 @@ std::array<double, StrategyN3M5::N> StrategyN3M5::StationaryState(double e, cons
   std::vector<T> tripletVec;
 
   for (int i = 0; i < N; i++) {
+    std::cerr << "i : " << i << std::endl;
     const StateN3M5 si(i);
-    for (int j = 0; j < N; j++) {
+    for (const StateN3M5 & sj : si.PossiblePrevStates()) {
       // calculate transition probability from j to i
-      const StateN3M5 sj(j);
+      size_t j = sj.ID();
       Action act_a = ActionAt(sj);
       Action act_b = B->ActionAt(sj.StateFromB());
       Action act_c = C->ActionAt(sj.StateFromC());
@@ -204,18 +211,18 @@ std::array<double, StrategyN3M5::N> StrategyN3M5::StationaryState(double e, cons
         // A(i, j) = 0.0;
       } else if (d == 0) {
         // A(i, j) = (1.0 - e) * (1.0 - e);
-        aij = (1.0 - e) * (1.0 - e);
+        aij = (1.0 - e) * (1.0 - e) * (1.0 - e);
       } else if (d == 1) {
         // A(i, j) = (1.0 - e) * e;
-        aij = (1.0 - e) * e;
+        aij = (1.0 - e) * (1.0 - e) * e;
       } else if (d == 2) {
         // A(i, j) = e * e;
-        aij = e * e;
+        aij = (1.0 - e) * e * e;
+      } else if (d == 3) {
+        aij = e * e * e;
       } else {
         assert(false);
       }
-      if (i == j) { aij -= 1.0; }  // subtract unix matrix
-      if (i == N-1) { aij += 1.0; } // normalization condition
       if (aij != 0.0) {
         tripletVec.emplace_back(i, j, aij);
       }
@@ -224,19 +231,30 @@ std::array<double, StrategyN3M5::N> StrategyN3M5::StationaryState(double e, cons
   Eigen::SparseMatrix<double> A(N, N);
   A.setFromTriplets(tripletVec.cbegin(), tripletVec.cend());
 
-  Eigen::VectorXd b(N);
-  for (int i = 0; i < N-1; i++) { b(i) = 0.0; }
-  b(N-1) = 1.0;
+  // subtract unit matrix & normalization condition
+  std::vector<T> iVec;
+  for (int i = 0; i < N-1; i++) { iVec.emplace_back(i, i, -1.0); }
+  for (int i = 0; i < N-1; i++) { iVec.emplace_back(N-1, i, 1.0); }
+  Eigen::SparseMatrix<double> I(N, N);
+  I.setFromTriplets(iVec.cbegin(), iVec.cend());
+  std::cerr << iVec.rbegin()->col() << ' ' << iVec.rbegin()->row() << ' ' << iVec.rbegin()->value() << std::endl;
+  A = A + I;
 
-  Eigen::BiCGSTAB<Eigen::SparseMatrix<double> > solver;
+  Eigen::VectorXd b = Eigen::VectorXd::Zero(N);
+  b(N-1) = 1.0;
+  std::cerr << b << std::endl;
+
+  // Eigen::BiCGSTAB<Eigen::SparseMatrix<double> > solver;
+  Eigen::BiCGSTAB<Eigen::SparseMatrix<double>, Eigen::IncompleteLUT<double> > solver;
   solver.compute(A);
   Eigen::VectorXd x = solver.solve(b);
 
   std::cerr << "#iterations:     " << solver.iterations() << std::endl;
   std::cerr << "estimated error: " << solver.error() << std::endl;
+  std::cerr << "x: " << x[0] << ' ' << x[32767] << std::endl;
 
   std::array<double, N> ans = {0};
-  for (int i = 0; i < N; i++) { ans[i] = x(i); }
+  for (int i = 0; i < N; i++) { ans[i] = x[i]; }
   return ans;
 }
 
@@ -289,6 +307,7 @@ bool StrategyN3M5::IsEfficientTopo() const {
       UpdateGn(gn);
     }
     for (int i = 1; i < N; i++) {
+      if(i%1000 == 0) {std::cerr << "checking efficiency (n,i) : " << n << ", " << i << std::endl;}
       if (checked[i] == 1) { continue; }
       if (gn.Reachable(i, 0)) {
         if (gn.Reachable(0, i)) {
@@ -365,7 +384,7 @@ bool StrategyN3M5::IsDistinguishableTopo() const {
 UnionFind StrategyN3M5::MinimizeDFA(bool noisy) const {
   UnionFind uf_0(N);
   // initialize grouping by the action c/d
-  size_t c_rep = -1, d_rep = -1;
+  long c_rep = -1, d_rep = -1;
   for (size_t i = 0; i < N; i++) {
     if (actions[i] == false) {
       c_rep = i;
@@ -379,7 +398,7 @@ UnionFind StrategyN3M5::MinimizeDFA(bool noisy) const {
     }
   }
   for (size_t i = 0; i < N; i++) {
-    size_t target = (actions[i] == false) ? c_rep : d_rep;
+    long target = (actions[i] == false) ? c_rep : d_rep;
     uf_0.merge(i, target);
   }
 
@@ -389,8 +408,10 @@ UnionFind StrategyN3M5::MinimizeDFA(bool noisy) const {
     for (const auto &kv : uf_0_map) { // refining a set in uf_0
       const auto &group = kv.second;
       // iterate over combinations in group
-      for (auto it_i = group.cbegin(); it_i != group.cend(); it_i++) {
+      size_t idx = 0, n = group.size();
+      for (auto it_i = group.cbegin(); it_i != group.cend(); it_i++, idx++) {
         auto it_j = it_i;
+        std::cerr << "idx / n : " << idx << " / " << n << std::endl;
         it_j++;
         for (; it_j != group.cend(); it_j++) {
           if (_Equivalent(*it_i, *it_j, uf_0, noisy)) {

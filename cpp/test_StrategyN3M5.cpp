@@ -44,33 +44,30 @@ void test_State() {
   assert(s1.NumDiffInT1(StateN3M5("ddddd_dcdcd_ccccd")) == -1);
 }
 
-/*
 void test_Strategy() {
-  const std::array<Action, 64> acts = {
-      C, C, C, C, D, D, D, D,
-      C, C, C, C, D, D, D, D,
-      C, C, C, C, D, D, D, D,
-      C, C, C, C, D, D, D, D,
-      C, C, C, C, D, D, D, D,
-      C, C, C, C, D, D, D, D,
-      C, C, C, C, D, D, D, D,
-      C, C, C, C, D, D, D, D
-  };
-  StrategyN2M3 s1(acts);
-  assert(s1.actions[0] == C);
-  assert(s1.actions[7] == D);
-  assert(s1.actions[59] == C);
-  assert(s1.actions[63] == D);
 
-  std::string bits("ccccddddccccddddccccddddccccddddccccddddccccddddccccddddccccdddd");
-  assert(s1.ToString() == bits);
-  assert(s1 == StrategyN2M3(bits.c_str()));
+  {
+    std::bitset<32768> allc_b(0ull);
+    StrategyN3M5 allc(allc_b);
 
-  assert(s1.ActionAt(StateN2M3("cccccc")) == C);
-  assert(s1.ActionAt("ddddcc") == D);  // implicit conversion
+    std::string s = allc.ToString();
+    assert(s.size() == 32768);
+    bool b = true;
+    for (char c: s) { if(c != '0') { b = false; break; } }
+    assert(b);
 
-  assert(s1.IsDefensible());
+    assert(allc.ActionAt(StateN3M5(0)) == C);
+    assert(allc.ActionAt(StateN3M5(999)) == C);
+    assert(allc.ActionAt(StateN3M5(9999)) == C);
 
+    assert(allc.IsEfficientTopo());
+    // assert(allc.IsEfficient());
+
+    // UnionFind uf = allc.MinimizeDFA(false);
+    // assert(uf.to_map().size() == 1);
+  }
+
+  /*
   {
     StrategyN2M3 alld("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd");
     assert(alld.IsDefensible() == true);
@@ -202,8 +199,10 @@ void test_Strategy() {
     auto stat = s.StationaryState(0.0001);
     assert(s.IsEfficientTopo() == true);
   }
+   */
 }
 
+/*
 void test_TFTATFT() {
   // 0  *cc*cc : c , 16 *dc*cc : c
   // 1  *cc*cd : d , 17 *dc*cd : d
@@ -301,7 +300,7 @@ int main() {
   std::cout << "Testing StrategyN3M5 class" << std::endl;
 
   test_State();
-  // test_Strategy();
+  test_Strategy();
   // test_EfficiencyDefensible();
   // test_TFTATFT();
   // test_CAPRI();

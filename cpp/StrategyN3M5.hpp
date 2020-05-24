@@ -147,8 +147,8 @@ class StateN3M5 {
 
 
 class StrategyN3M5 {
-  static const size_t N = 1ull << 15ull; // == 32768
  public:
+  static const size_t N = 1ull << 15ull; // == 32768
   explicit StrategyN3M5(const std::bitset<N> &actions); // construct a strategy from a list of actions. 0=>c,1=>d
   std::bitset<N> actions;
 
@@ -165,7 +165,7 @@ class StrategyN3M5 {
   bool IsDefensibleDFA() const; // check defensibility using DFA minimization
   // get stationary state. When coplayer is nullptr, it is set to self
   std::array<double, N> StationaryState(double e = 0.0001, const StrategyN3M5 *B = nullptr, const StrategyN3M5 *C = nullptr) const;
-  std::array<double, N> StationaryState2(double e = 0.0001, const StrategyN3M5 *B = nullptr, const StrategyN3M5 *C = nullptr) const;
+  // std::array<double, N> StationaryState2(double e = 0.0001, const StrategyN3M5 *B = nullptr, const StrategyN3M5 *C = nullptr) const;
   // check efficiency. all actions must be fixed
   bool IsEfficient(double e = 0.00001, double th = 0.95) const { return (StationaryState(e)[0] > th); }
   bool IsEfficientTopo() const; // check efficiency using ITG
@@ -182,5 +182,6 @@ class StrategyN3M5 {
   std::vector<StateN3M5> NextPossibleStates(StateN3M5 current) const;
   bool _Equivalent(size_t i, size_t j, UnionFind &uf_0, bool noisy) const;
 };
+
 
 #endif //STRATEGY_N3M5_HPP
