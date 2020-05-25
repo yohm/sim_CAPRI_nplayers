@@ -101,10 +101,21 @@ bool StrategyN3M5::IsDefensibleDFA() const {
     if (d[i][i] < 0) { return false; }
   }
 
+  // debug print
+  auto print_d = [&d,AN]() {
+    for (size_t i = 0; i < AN; i++) {
+      for (size_t j = 0; j < AN; j++) {
+        std::cerr << d[i][j] << ' ';
+      }
+      std::cerr << std::endl;
+    }
+  };
+  // print_d();
+
   for (size_t k = 0; k < AN; k++) {
     for (size_t i = 0; i < AN; i++) {
       for (size_t j = 0; j < AN; j++) {
-        d[i][j] = MIN(d[i][j], d[i][k] + d[k][j]);
+        d[i][j] = std::min(d[i][j], d[i][k] + d[k][j]);
       }
       if (d[i][i] < 0) { return false; }
     }
