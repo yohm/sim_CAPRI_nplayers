@@ -239,7 +239,8 @@ std::array<double, 64> StrategyN2M3::StationaryState(double e, const StrategyN2M
   for (int i = 0; i < 63; i++) { b(i) = 0.0; }
   b(63) = 1.0;
 
-  Eigen::BiCGSTAB<Eigen::SparseMatrix<double> > solver;
+  // Eigen::BiCGSTAB<Eigen::SparseMatrix<double> > solver;
+  Eigen::BiCGSTAB<Eigen::SparseMatrix<double>, Eigen::IncompleteLUT<double> > solver;
   solver.compute(A);
   Eigen::VectorXd x = solver.solve(b);
 
