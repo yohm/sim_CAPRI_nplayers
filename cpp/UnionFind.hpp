@@ -12,9 +12,10 @@
 
 class UnionFind {
  public:
-  explicit UnionFind(size_t n) : parent(n) {
+  explicit UnionFind(size_t n) : N(n), parent(n) {
     for (size_t i = 0; i < n; i++) { parent[i] = i; }
   }
+  size_t org_size() const { return N; }
   size_t root(size_t i) {
     if (parent[i] != i) {
       size_t r = root(parent[i]);
@@ -39,6 +40,7 @@ class UnionFind {
     return std::move(m);
   }
  private:
+  size_t N;
   std::vector<size_t> parent;
 };
 
