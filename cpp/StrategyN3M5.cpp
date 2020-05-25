@@ -6,7 +6,8 @@
 
 const size_t StrategyN3M5::N;
 
-StrategyN3M5::StrategyN3M5(const std::bitset<N> &acts) : actions(acts) {}
+StrategyN3M5::StrategyN3M5(const std::bitset<N> &acts) : actions(acts), min_auto_cache{UnionFind(0), UnionFind(0)} {
+}
 
 std::string StrategyN3M5::ToString() const {
   std::string s = actions.to_string();
@@ -67,7 +68,7 @@ bool StrategyN3M5::IsDefensible() const {
   return true;
 }
 
-bool StrategyN3M5::IsDefensibleDFA() const {
+bool StrategyN3M5::IsDefensibleDFA() {
   const auto autom = MinimizeDFA(false).to_map();
   std::vector<std::set<size_t> > groups;
   groups.reserve(autom.size());
@@ -391,7 +392,11 @@ bool StrategyN3M5::IsDistinguishableTopo() const {
   return false;
 }
 
-UnionFind StrategyN3M5::MinimizeDFA(bool noisy) const {
+UnionFind StrategyN3M5::MinimizeDFA(bool noisy) {
+  // check cache
+  if (!noisy && min_auto_cache[0].org_size() > 0) { return min_auto_cache[0]; }
+  if ( noisy && min_auto_cache[1].org_size() > 0) { return min_auto_cache[1]; }
+
   UnionFind uf_0(N);
   // initialize grouping by the action c/d
   long c_rep = -1, d_rep = -1;
@@ -421,7 +426,7 @@ UnionFind StrategyN3M5::MinimizeDFA(bool noisy) const {
       size_t idx = 0, n = group.size();
       for (auto it_i = group.cbegin(); it_i != group.cend(); it_i++, idx++) {
         auto it_j = it_i;
-        std::cerr << "idx / n : " << idx << " / " << n << std::endl;
+        if(idx % 100 == 0) { std::cerr << "in DFA minimization, idx / n : " << idx << " / " << n << std::endl; }
         it_j++;
         for (; it_j != group.cend(); it_j++) {
           if (_Equivalent(*it_i, *it_j, uf_0, noisy)) {
@@ -433,6 +438,9 @@ UnionFind StrategyN3M5::MinimizeDFA(bool noisy) const {
     if (uf_0_map == uf.to_map()) break;
     uf_0 = uf;
   }
+
+  if (!noisy) { min_auto_cache[0] = uf_0; }
+  if (noisy)  { min_auto_cache[1] = uf_0; }
   return uf_0;
 }
 

@@ -150,7 +150,6 @@ class StrategyN3M5 {
  public:
   static const size_t N = 1ull << 15ull; // == 32768
   explicit StrategyN3M5(const std::bitset<N> &actions); // construct a strategy from a list of actions. 0=>c,1=>d
-  std::bitset<N> actions;
 
   std::string ToString() const;
   friend std::ostream &operator<<(std::ostream &os, const StrategyN3M5 &strategy);
@@ -160,9 +159,8 @@ class StrategyN3M5 {
   }
 
   Action ActionAt(const StateN3M5 &s) const { return actions[s.ID()] ? D : C; }
-  void SetAction(const StateN3M5 &s, Action a) { if (a == C) { actions.reset(s.ID()); } else { actions.set(s.ID());} }
-  bool IsDefensible() const;  // check defensibility.
-  bool IsDefensibleDFA() const; // check defensibility using DFA minimization
+  bool IsDefensible() const;  // check defensibility. Not computationally feasible.
+  bool IsDefensibleDFA(); // check defensibility using DFA minimization
   // get stationary state. When coplayer is nullptr, it is set to self
   std::array<double, N> StationaryState(double e = 0.0001, const StrategyN3M5 *B = nullptr, const StrategyN3M5 *C = nullptr) const;
   // std::array<double, N> StationaryState2(double e = 0.0001, const StrategyN3M5 *B = nullptr, const StrategyN3M5 *C = nullptr) const;
@@ -177,8 +175,10 @@ class StrategyN3M5 {
   DirectedGraph ITG() const;  // construct g(S,S).
   std::array<uint64_t , StrategyN3M5::N> DestsOfITG() const; // Trace g(S,S) from node i. Destination is stored in i'th element.
   uint64_t NextITGState(const StateN3M5 &s) const; // Trace the intra-transition graph by one step
-  UnionFind MinimizeDFA(bool noisy = false) const;
+  UnionFind MinimizeDFA(bool noisy = false);
  private:
+  const std::bitset<N> actions;
+  UnionFind min_auto_cache[2];  // cache of simplified and full automaton
   std::vector<StateN3M5> NextPossibleStates(StateN3M5 current) const;
   bool _Equivalent(size_t i, size_t j, UnionFind &uf_0, bool noisy) const;
 };
