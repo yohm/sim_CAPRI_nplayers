@@ -231,29 +231,25 @@ void test_CAPRI3() {
     std::reverse(s.begin(), s.end());
     const std::string Istr = s.substr(0,5) + '-' + s.substr(5,5) + '-' + s.substr(10,5);
     const std::bitset<15> last = 0b00001'00001'00001ul;
-    // C: cooperate if the last action profile is CCC
-    if ((I & last) == 0ul) {
-      // return C;
-      const std::bitset<15> a = 0b00000'00000'11111ul;
-      const std::bitset<15> b = a << 5ul, c = a << 10ul;
-      if ((I & a).count() == (I & b).count() && (I & a).count() == (I & c).count()) {
-        return C;
-      }
-      else {
-        return D;
-      }
-    }
 
     size_t last_ccc = 5;
-    for (size_t t = 1; t < 5; t++) {
+    for (size_t t = 0; t < 5; t++) {
       if ((I & (last<<t)) == 0ul) {  // CCC is found at t step before
         last_ccc = t;
         break;
       }
     }
 
-    const std::bitset<15> oldest = 0b11110'11110'11110ul;
-    if (last_ccc < 5) {
+    // C: cooperate if the last action profile is CCC & relative payoff profile is equal
+    if (last_ccc == 0) {
+      // return C;
+      const std::bitset<15> a = 0b00000'00000'11111ul;
+      const std::bitset<15> b = a << 5ul, c = a << 10ul;
+      if ((I & a).count() == (I & b).count() && (I & a).count() == (I & c).count()) {
+        return C;
+      }
+    }
+    else if (last_ccc < 5) {
       std::bitset<15> a_mask = 0ul;
       for (size_t t = 0; t < last_ccc; t++) { a_mask.set(t); }
       // a_mask = 0b00000'00000'00001 for 1, 00000'00000'00011 for 2, and so on...
@@ -271,25 +267,10 @@ void test_CAPRI3() {
         return D;
       }
     }
-    else if ((I & oldest) == oldest){
-      // If you can't find mutual cooperation CCC in your memory horizon and the oldest action profile is DDD
-      // Count the relative payoff from the beginning of your memory.
-      const std::bitset<15> a_mask = 0b00000'00000'11111ul;
-      const std::bitset<15> b_mask = a_mask << 5ul, c_mask = a_mask << 10ul;
-      const size_t nd_a = (I & a_mask).count(); // number of defection of A
-      const size_t nd_b = (I & b_mask).count(); // number of defection of B
-      const size_t nd_c = (I & c_mask).count(); // number of defection of C
-      // R1: If your relative payoff profile is (+1,+1, ...,+1) and nd_a == 5, prescribe *C*.
-      if (nd_a == nd_b + 1 && nd_a == nd_c + 1) {
-        return C;
-      }
-      // R2: If your relative payoff profile is equal to (-1,0,0,...0), prescribe *C*.
-      else if (nd_a + 1 == nd_b && nd_a == nd_c) {
-        return C;
-      }
-      else if (nd_a == nd_b && nd_a + 1 == nd_c) {
-        return C;
-      }
+    else if (I == 0b11111'11110'11110 || I == 0b11110'11111'11110 || I == 0b11110'11110'11111) { // DDDDD_DDDDC_DDDDC
+      // If you can't find mutual cooperation CCC in your memory horizon and the action profile is DDD for t=1~4
+      // R: If payoff profile is (+1,+1,-1), prescribe *C*.
+      return C;
     }
     // In all other cases, *D*
     return D;
@@ -330,100 +311,6 @@ void test_CAPRI3() {
   myassert(capri.IsDistinguishable());
   myassert(capri.IsDistinguishableTopo());
 }
-
-/*
-void test_TFTATFT() {
-  // 0  *cc*cc : c , 16 *dc*cc : c
-  // 1  *cc*cd : d , 17 *dc*cd : d
-  // 2  *cc*dc : c , 18 *dc*dc : c
-  // 3  *cc*dd : d , 19 *dc*dd : c
-  // 8  *cd*cc : d , 24 *dd*cc : d
-  // 9  *cd*cd : c , 25 *dd*cd : c
-  // 10 *cd*dc : c , 26 *dd*dc : c
-  // 11 *cd*dd : d , 27 *dd*dd : d
-  std::map<int, Action> m = {
-      {0, C}, {1, D}, {2, C}, {3, D},
-      {8, D}, {9, C}, {10, C}, {11, D},
-      {16, C}, {17, D}, {18, C}, {19, C},
-      {24, D}, {25, C}, {26, C}, {27, D}
-  };
-  StrategyN2M3 tft_atft("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
-  int mask = 27; // 011011
-  for (int i = 0; i < 64; i++) {
-    int masked = i & mask;
-    tft_atft.SetAction(i, m.at(masked));
-  }
-
-  myassert(tft_atft.ToString() == "cdcdcdcddccddccdcdcccdccdccddccdcdcdcdcddccddccdcdcccdccdccddccd");
-
-  myassert(tft_atft.IsDefensible());
-  myassert(tft_atft.IsDefensibleDFA());
-  myassert(tft_atft.IsEfficient());
-
-  myassert(tft_atft.IsDistinguishable());
-  myassert(tft_atft.IsDistinguishableTopo());
-
-  const auto simp_automaton = tft_atft.MinimizeDFA(false).to_map();
-  myassert(simp_automaton.size() == 4);
-  myassert(simp_automaton.at(0).size() == 28);  // TFT-c
-  myassert(simp_automaton.at(1).size() == 20);  // TFT-d
-  myassert(simp_automaton.at(8) == std::set<size_t>({8, 12, 40, 44, 24, 28, 56, 60}));  // ATFT-d
-  myassert(simp_automaton.at(9) == std::set<size_t>({9, 13, 41, 45, 25, 29, 57, 61}));  // ATFT-c
-
-  const auto full_auto = tft_atft.MinimizeDFA(true).to_map();
-  myassert(full_auto.size() == 6);
-  myassert(full_auto.at(0).size() == 24);  // TFT-c
-  myassert(full_auto.at(1).size() == 12);  // TFT-d
-  myassert(full_auto.at(8) == std::set<size_t>({8, 12, 40, 44, 24, 28, 56, 60}));  // ATFT-d
-  myassert(full_auto.at(9) == std::set<size_t>({9, 13, 41, 45, 25, 29, 57, 61}));  // ATFT-c
-  myassert(full_auto.at(19) == std::set<size_t>({19, 23, 51, 55}));  // TFT-c-2
-  myassert(full_auto.at(11) == std::set<size_t>({11, 15, 43, 47, 27, 31, 59, 63}));  // TFT-d-2
-}
-
-void test_CAPRI() {
-  // action table of CAPRI
-  // A's history : B's history (ccc,ccd,cdc,cdd,dcc,dcd,ddc,ddd)
-  // ccc : cddd cddd
-  // ccd : cdcd dddd
-  // cdc : dcdd cddd
-  // cdd : dddd dddd
-  // dcc : cdcd cdcd
-  // dcd : dddd dddd
-  // ddc : dddd cdcc
-  // ddd : dddd ddcd
-  StrategyN2M3 capri("cdddcdddcdcddddddcddcdddddddddddcdcdcdcdddddddddddddcdccddddddcd");
-
-  myassert(capri.IsDefensible());
-  myassert(capri.IsDefensibleDFA());
-  myassert(capri.IsEfficient());
-  myassert(capri.IsEfficientTopo());
-
-  myassert(capri.IsDistinguishable());
-  myassert(capri.IsDistinguishableTopo());
-
-  { // distinguishable against WSLS
-    StrategyN2M3 wsls("cdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdc");
-    const auto stat = capri.StationaryState(1.0e-6, &wsls);
-    myassert(std::abs(stat[61] - 0.5) < 0.01);  // ddd,dcd ~ 0.5
-    myassert(std::abs(stat[58] - 0.5) < 0.01);  // ddd,cdc ~ 0.5
-    myassert(stat[0] < 0.01);  // ccc,ccc ~ 0.5
-  }
-
-  const auto simp_auto = capri.MinimizeDFA(false).to_map();
-  myassert(simp_auto.size() == 7);
-  const auto full_auto = capri.MinimizeDFA(true).to_map();
-  myassert(full_auto.size() == 14);
-}
-
-void test_EfficiencyDefensible() {
-  StrategyN2M3 s1("cdddddddcdcdddcddcddcdddddccdcddddcdcdddddddddcdddddddcddddcdddd");  // efficient and defensible
-  myassert(s1.IsEfficient());
-  myassert(s1.IsDefensible());
-  myassert(s1.IsDefensibleDFA());
-  // auto stat = s1.StationaryState(0.0001);
-  // for(int i=0; i<64; i++) { myassert(stat[i] < 0.01); }
-}
- */
 
 int main() {
   std::cout << "Testing StrategyN3M5 class" << std::endl;
