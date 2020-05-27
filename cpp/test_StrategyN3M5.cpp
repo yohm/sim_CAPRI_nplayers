@@ -232,39 +232,38 @@ void test_CAPRI3() {
     std::reverse(s.begin(), s.end());
     const std::string Istr = s.substr(0,5) + '-' + s.substr(5,5) + '-' + s.substr(10,5);
 
+    const B oldest = 0b10000'10000'10000ul, latest = 0b00001'00001'00001ul;
+    const B latest2 = (latest << 1ul) | latest;
+    const B a_mask = 0b00000'00000'11111ul;
+    const B b_mask = a_mask << 5ul, c_mask = a_mask << 10ul;
+    const size_t na = (I & a_mask).count(), nb = (I & b_mask).count(), nc = (I & c_mask).count();
+
     size_t last_ccc = 5;
-    const B last = 0b00001'00001'00001ul;
     for (size_t t = 0; t < 5; t++) {
-      if ((I & (last<<t)) == B(0ul)) {  // CCC is found at t step before
+      if ((I & (latest<<t)) == B(0ul)) {  // CCC is found at t step before
         last_ccc = t;
         break;
       }
     }
 
     // C: cooperate if the mutual cooperation is formed at last two rounds
-    if ((I & B(0b00011'00011'00011ul)) == B(0ul)) {
+    if ((I & latest2) == 0ul) {
       return C;
     }
     // A0: cooperate if the last action profile is CCC & relative payoff profile is equal
-    else if (last_ccc == 0) {
-      // return C;
-      const B a = 0b00000'00000'11111ul;
-      const B b = a << 5ul, c = a << 10ul;
-      if ((I & a).count() == (I & b).count() && (I & a).count() == (I & c).count()) {
+    else if ((I & latest) == 0ul) {
+      if (na == nb && na == nc) {
         return C;
       }
     }
-    else if (last_ccc < 5) {
-      B a_mask = 0ul;
-      for (size_t t = 0; t < last_ccc; t++) { a_mask.set(t); }
-      // a_mask = 0b00000'00000'00001 for 1, 00000'00000'00011 for 2, and so on...
-      const B b_mask = a_mask << 5ul, c_mask = a_mask << 10ul;
-      const size_t nd_a = (I & a_mask).count(); // number of defection of A
-      const size_t nd_b = (I & b_mask).count(); // number of defection of B
-      const size_t nd_c = (I & c_mask).count(); // number of defection of C
-
+    else if (last_ccc > 0 && last_ccc < 5) {
+      B mask = latest;
+      for (size_t t = 0; t < last_ccc; t++) { mask = ((mask << 1ul) | latest); }
       // A+: Accept punishment by prescribing *C* if all your relative payoffs are at least zero.
-      if (nd_a >= nd_b && nd_a >= nd_c) {
+      size_t pa = (I & mask & a_mask).count();
+      size_t pb = (I & mask & b_mask).count();
+      size_t pc = (I & mask & c_mask).count();
+      if (pa >= pb && pa >= pc) {
         return C;
       }
       // P: Punish by *D* if any of your relative payoffs is negative.
