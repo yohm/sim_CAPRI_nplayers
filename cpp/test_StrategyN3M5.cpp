@@ -224,42 +224,47 @@ void test_m3_FUSS() {
 
 void test_CAPRI3() {
   const size_t N = StrategyN3M5::N;
+  typedef std::bitset<15> B;
 
   auto capri_action_at = [](size_t i)->Action {
-    const std::bitset<15> I(i);
+    const B I(i);
     std::string s = I.to_string('c', 'D');
     std::reverse(s.begin(), s.end());
     const std::string Istr = s.substr(0,5) + '-' + s.substr(5,5) + '-' + s.substr(10,5);
-    const std::bitset<15> last = 0b00001'00001'00001ul;
 
     size_t last_ccc = 5;
+    const B last = 0b00001'00001'00001ul;
     for (size_t t = 0; t < 5; t++) {
-      if ((I & (last<<t)) == 0ul) {  // CCC is found at t step before
+      if ((I & (last<<t)) == B(0ul)) {  // CCC is found at t step before
         last_ccc = t;
         break;
       }
     }
 
-    // C: cooperate if the last action profile is CCC & relative payoff profile is equal
-    if (last_ccc == 0) {
+    // C: cooperate if the mutual cooperation is formed at last two rounds
+    if ((I & B(0b00011'00011'00011ul)) == B(0ul)) {
+      return C;
+    }
+    // A0: cooperate if the last action profile is CCC & relative payoff profile is equal
+    else if (last_ccc == 0) {
       // return C;
-      const std::bitset<15> a = 0b00000'00000'11111ul;
-      const std::bitset<15> b = a << 5ul, c = a << 10ul;
+      const B a = 0b00000'00000'11111ul;
+      const B b = a << 5ul, c = a << 10ul;
       if ((I & a).count() == (I & b).count() && (I & a).count() == (I & c).count()) {
         return C;
       }
     }
     else if (last_ccc < 5) {
-      std::bitset<15> a_mask = 0ul;
+      B a_mask = 0ul;
       for (size_t t = 0; t < last_ccc; t++) { a_mask.set(t); }
       // a_mask = 0b00000'00000'00001 for 1, 00000'00000'00011 for 2, and so on...
-      const std::bitset<15> b_mask = a_mask << 5ul, c_mask = a_mask << 10ul;
+      const B b_mask = a_mask << 5ul, c_mask = a_mask << 10ul;
       const size_t nd_a = (I & a_mask).count(); // number of defection of A
       const size_t nd_b = (I & b_mask).count(); // number of defection of B
       const size_t nd_c = (I & c_mask).count(); // number of defection of C
 
-      // A: Accept punishment by prescribing *C* if all your relative payoffs are at least zero.
-      if (nd_a >= nd_b && nd_a < nd_b + 2 && nd_a >= nd_c && nd_a < nd_c + 2) {
+      // A+: Accept punishment by prescribing *C* if all your relative payoffs are at least zero.
+      if (nd_a >= nd_b && nd_a >= nd_c) {
         return C;
       }
       // P: Punish by *D* if any of your relative payoffs is negative.
@@ -267,9 +272,13 @@ void test_CAPRI3() {
         return D;
       }
     }
-    else if (I == 0b11111'11110'11110 || I == 0b11110'11111'11110 || I == 0b11110'11110'11111) { // DDDDD_DDDDC_DDDDC
-      // If you can't find mutual cooperation CCC in your memory horizon and the action profile is DDD for t=1~4
+
+    // R: grab the chance to recover
+    if (I == 0b11111'11110'11110 || I == 0b11110'11111'11110 || I == 0b11110'11110'11111) {
       // R: If payoff profile is (+1,+1,-1), prescribe *C*.
+      return C;
+    }
+    if (I == 0b11110'11100'11100 || I == 0b11100'11110'11100 || I == 0b11100'11100'11110) {
       return C;
     }
     // In all other cases, *D*
@@ -295,8 +304,13 @@ void test_CAPRI3() {
   for (size_t i = 0; i < stat.size(); i++) {
     if (stat[i] > 0.05) { std::cerr << StateN3M5(i).ToString() << " : " << stat[i] << std::endl; }
   }
+
   myassert(capri.IsEfficient() == true);
   myassert(capri.IsEfficientTopo() == true);
+
+  myassert(capri.IsDistinguishable());
+  myassert(capri.IsDistinguishableTopo());
+
   const auto simp_automaton = capri.MinimizeDFA(false).to_map();
   std::cerr << "autom_size: " << simp_automaton.size() << std::endl;
   for (const auto &kv: simp_automaton) {
@@ -308,8 +322,6 @@ void test_CAPRI3() {
   }
   myassert(capri.IsDefensibleDFA() == true);
 
-  myassert(capri.IsDistinguishable());
-  myassert(capri.IsDistinguishableTopo());
 }
 
 int main() {
