@@ -132,8 +132,8 @@ std::array<uint64_t , StrategyN3M5::N> StrategyN3M5::DestsOfITG() const {
     std::array<bool, N> visited = {false}; // initialize by false
     visited[i] = true;
     StateN3M5 init(i);
-    int next = NextITGState(init);
-    while (next >= 0) {
+    uint64_t next = NextITGState(init);
+    while (true) {
       if (visited[next] || fixed[next]) { break; }
       visited[next] = true;
       next = NextITGState(StateN3M5(next));
@@ -147,6 +147,33 @@ std::array<uint64_t , StrategyN3M5::N> StrategyN3M5::DestsOfITG() const {
     }
   }
   return dests;
+}
+
+std::vector<uint64_t> StrategyN3M5::TraceStates(uint64_t start, const StrategyN3M5 *B, const StrategyN3M5 *C) {
+  std::vector<uint64_t> trace;
+
+  if (B == nullptr) { B = this; }
+  if (C == nullptr) { C = this; }
+
+  auto next_state = [this,B,C](uint64_t i) -> uint64_t {
+    auto s = StateN3M5(i);
+    Action a = this->ActionAt(s);
+    Action b = B->ActionAt(s.StateFromB());
+    Action c = C->ActionAt(s.StateFromC());
+    return s.NextState(a, b, c).ID();
+  };
+
+  std::array<bool, N> visited = {false}; // initialize by false
+  visited[start] = true;
+  trace.push_back(start);
+  uint64_t c = next_state(start);
+  while (true) {
+    if (visited[c]) { break; }
+    visited[c] = true;
+    trace.push_back(c);
+    c = next_state(c);
+  }
+  return std::move(trace);
 }
 
 uint64_t StrategyN3M5::NextITGState(const StateN3M5 &s) const {
@@ -201,7 +228,7 @@ std::array<double, StrategyN3M5::N> StrategyN3M5::StationaryState2(double e, con
  */
 
 std::array<double, StrategyN3M5::N> StrategyN3M5::StationaryState(double e, const StrategyN3M5 *B, const StrategyN3M5 *C) const {
-  std::cerr << "calculating statinaryState" << std::endl;
+  std::cerr << "calculating stationary state" << std::endl;
   if (B == nullptr) { B = this; }
   if (C == nullptr) { C = this; }
 

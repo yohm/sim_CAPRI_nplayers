@@ -175,6 +175,7 @@ class StrategyN3M5 {
   DirectedGraph ITG() const;  // construct g(S,S).
   std::array<uint64_t , StrategyN3M5::N> DestsOfITG() const; // Trace g(S,S) from node i. Destination is stored in i'th element.
   uint64_t NextITGState(const StateN3M5 &s) const; // Trace the intra-transition graph by one step
+  std::vector<uint64_t> TraceStates(uint64_t start, const StrategyN3M5 *B = nullptr, const StrategyN3M5 *C = nullptr);
   UnionFind MinimizeDFA(bool noisy = false);
  private:
   const std::bitset<N> actions;

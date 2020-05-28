@@ -291,10 +291,17 @@ void test_CAPRI3() {
 
   StrategyN3M5 capri(capri_b);
 
+  {
+    uint64_t i = StateN3M5("cdccc_dcccc_ccccc").ID();
+    auto t = capri.TraceStates(i);
+    for (uint64_t i: t) {
+      std::cerr << StateN3M5(i) << ", "; }
+    std::cerr << std::endl;
+  }
+
   auto dests = capri.DestsOfITG();
   for (uint64_t d : dests) {
-    if (d == 0 || d == 32767) continue;
-    std::cerr << d << std::endl;
+    if (d != 0 && d != 32767) myassert(false);
   }
 
   auto stat = capri.StationaryState(0.00001);
