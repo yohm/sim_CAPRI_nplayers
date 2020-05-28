@@ -250,7 +250,7 @@ void test_CAPRI3() {
     if ((I & latest2) == 0ul) {
       return C;
     }
-    // A0: cooperate if the last action profile is CCC & relative payoff profile is equal
+    // C0: cooperate if the last action profile is CCC & relative payoff profile is equal
     else if ((I & latest) == 0ul) {
       if (na == nb && na == nc) {
         return C;
@@ -259,7 +259,7 @@ void test_CAPRI3() {
     else if (last_ccc > 0 && last_ccc < 5) {
       B mask = latest;
       for (size_t t = 0; t < last_ccc; t++) { mask = ((mask << 1ul) | latest); }
-      // A+: Accept punishment by prescribing *C* if all your relative payoffs are at least zero.
+      // A: Accept punishment by prescribing *C* if all your relative payoffs are at least zero.
       size_t pa = (I & mask & a_mask).count();
       size_t pb = (I & mask & b_mask).count();
       size_t pc = (I & mask & c_mask).count();
