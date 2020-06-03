@@ -124,7 +124,8 @@ class StrategyN2M3 {
   bool IsEfficientTopo() const; // check efficiency using ITG
   bool IsDistinguishable(double e = 0.00001, double th = 0.95) const {
     const StrategyN2M3 allc("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
-    return (StationaryState(e, &allc)[0] < th);
+    auto s = StationaryState(e, &allc);
+    return (s[0] < th);
   };  // check distinguishability against AllC
   bool IsDistinguishableTopo() const; // check distinguishability using the transition graph
   DirectedGraph ITG() const;  // construct g(S,S).
