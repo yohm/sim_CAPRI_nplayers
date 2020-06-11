@@ -199,7 +199,7 @@ int main(int argc, char *argv[]) {
   Ecosystem eco(seed);
   std::vector<size_t> histo(ID_MAX, 0ul);
   double coop_rate = 0.0;
-  uint64_t t_int = 100;
+  uint64_t t_int = 1000;
 
   for(uint64_t t = 0; t < tmax; t++) {
     eco.UpdateResident(benefit, cost, N, sigma, e);
@@ -212,6 +212,18 @@ int main(int argc, char *argv[]) {
       std::cerr << t << ' ' << coop_rate / (t+1) << std::endl;
     }
   }
+
+  double c0 = 0.0, c1 = 0.0, c2 = 0.0, d0 = 0.0, d1 = 0.0, d2 = 0.0;
+  for (size_t i = 0; i < histo.size(); i++) {
+    Mem1Species s(i);
+    c0 += histo[i] * s.prob.c0;
+    c1 += histo[i] * s.prob.c1;
+    c2 += histo[i] * s.prob.c2;
+    d0 += histo[i] * s.prob.d0;
+    d1 += histo[i] * s.prob.d1;
+    d2 += histo[i] * s.prob.d2;
+  }
+  std::cout << c0/tmax << ' ' << c1/tmax << ' ' << c2/tmax << ' ' << d0/tmax << ' ' << d1/tmax << ' ' << d2/tmax << std::endl;
 
   return 0;
 }
