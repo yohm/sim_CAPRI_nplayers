@@ -8,6 +8,7 @@
 #include <map>
 #include <random>
 #include <cassert>
+#include <fstream>
 #include "StrategyN3M5.hpp"
 
 // memory-1 species in strategy space discretized with `D`
@@ -17,8 +18,8 @@
 // ID of a species is given by an integer with base-(D+1).
 // ID can take values [0, 11^6-1 = 1771560]
 // ID=0 : AllD, ID=ID_MAX-1 : AllC
-const size_t DIS = 10ul;
-const size_t ID_MAX = 1771561ul;
+const size_t DIS = 4ul;
+const size_t ID_MAX = (DIS+1)*(DIS+1)*(DIS+1)*(DIS+1)*(DIS+1)*(DIS+1);
 class Cprobs {
  public:
   Cprobs(size_t id) {
@@ -32,6 +33,7 @@ class Cprobs {
     d2 = ((id/B/B/B/B/B) % B) * dinv;
   }
   double c0, c1, c2, d0, d1, d2;
+
 };
 
 class Mem1Species {
@@ -44,6 +46,19 @@ class Mem1Species {
   Cprobs prob;
   std::array<double,N> _ss_cache;
   bool _ss_cache_ready;
+
+  std::string ToString() const {
+    const size_t B = DIS+1;
+    size_t c0 = (id % B);
+    size_t c1 = ((id/B) % B);
+    size_t c2 = ((id/B/B) % B);
+    size_t d0 = ((id/B/B/B) % B);
+    size_t d1 = ((id/B/B/B/B) % B);
+    size_t d2 = ((id/B/B/B/B/B) % B);
+    std::ostringstream oss;
+    oss << c0 << '-' << c1 << '-' << c2 << '-' << d0 << '-' << d1 << '-' << d2;
+    return oss.str();
+  }
 
   std::array<double,N> StationaryState(const Mem1Species& Bstr, const Mem1Species& Cstr, double error = 0.0) {
     if (id == Bstr.id && id == Cstr.id && _ss_cache_ready) { return _ss_cache; }
@@ -180,10 +195,26 @@ class Ecosystem {
   }
 };
 
+void PrintAbundance(uint64_t tmax, const std::vector<size_t> &histo, const std::string &fname) {
+  typedef std::__1::pair<size_t, size_t> SS;
+  auto compare_by_val = [](const SS &a, const SS &b) { return (a.second < b.second); };
+  std::__1::multiset<std::__1::pair<size_t, size_t>, decltype(compare_by_val)> sorted_histo(compare_by_val);
+  for (size_t i = 0; i < histo.size(); i++) {
+    if (histo[i] > 0) {
+      sorted_histo.insert( std::make_pair(i, histo[i]) );
+    }
+  }
+  std::ofstream fout(fname);
+  for (auto it = sorted_histo.rbegin(); it != sorted_histo.rend(); it++) {
+    fout << Mem1Species(it->first).ToString() << ' ' << (double)it->second / tmax * ID_MAX << std::endl;
+  }
+  fout.close();
+}
+
 int main(int argc, char *argv[]) {
-  if( argc != 8 ) {
+  if( argc != 9 ) {
     std::cerr << "Error : invalid argument" << std::endl;
-    std::cerr << "  Usage : " << argv[0] << " <benefit> <cost> <N> <N_sigma> <error rate> <tmax> <rand_seed>" << std::endl;
+    std::cerr << "  Usage : " << argv[0] << " <benefit> <cost> <N> <N_sigma> <error rate> <t_init> <tmax> <rand_seed>" << std::endl;
     return 1;
   }
 
@@ -193,26 +224,45 @@ int main(int argc, char *argv[]) {
   double N_sigma = std::strtod(argv[4], nullptr);
   double sigma = N_sigma / N;
   double e = std::strtod(argv[5], nullptr);
-  uint64_t tmax = std::strtoull(argv[6], nullptr,0);
-  uint64_t seed = std::strtoull(argv[7], nullptr,0);
+  uint64_t t_init = std::strtoull(argv[6], nullptr,0);
+  uint64_t tmax = std::strtoull(argv[7], nullptr,0);
+  uint64_t seed = std::strtoull(argv[8], nullptr,0);
 
   Ecosystem eco(seed);
-  std::vector<size_t> histo(ID_MAX, 0ul);
-  double coop_rate = 0.0;
-  uint64_t t_int = 1000;
+  uint64_t t_int = 10000;
+  for (uint64_t t = 0; t < t_init; t++) {
+    eco.UpdateResident(benefit, cost, N, sigma, e);
+    if( t % t_int == t_int - 1) {
+      double c = eco.resident.StationaryState(eco.resident, eco.resident, e)[0];
+      std::cerr << t << ' ' << c << std::endl;
+    }
+  }
 
+  std::ofstream tout("timeseries.dat");
+  uint64_t t_measure = tmax / 100000 + 1;
+
+  std::vector<size_t> histo(ID_MAX, 0ul);
+  double coop_rate_sum = 0.0;
   for(uint64_t t = 0; t < tmax; t++) {
     eco.UpdateResident(benefit, cost, N, sigma, e);
     size_t res = eco.resident.id;
     histo[res] += 1;
 
-    coop_rate += eco.resident.StationaryState(eco.resident, eco.resident, e)[0];
+    auto s = eco.resident.StationaryState(eco.resident, eco.resident, e);
+    double coop_rate = s[0] * 1.0 + (s[1]+s[2]+s[4]) * (2.0/3.0) + (s[3]+s[5]+s[6]) * (1.0/3.0);
+    coop_rate_sum += coop_rate;
 
-    if( t % t_int == t_int - 1) {
-      std::cerr << t << ' ' << coop_rate / (t+1) << std::endl;
+    if ( t % t_int == t_int - 1) {
+      std::cerr << t << ' ' << coop_rate << std::endl;
+    }
+    if ( t % t_measure == t_measure -1 ) {
+      tout << t << ' ' << coop_rate << std::endl;
     }
   }
 
+  PrintAbundance(tmax, histo, "abundance.dat");
+
+  std::ofstream jout("_output.json");
   double c0 = 0.0, c1 = 0.0, c2 = 0.0, d0 = 0.0, d1 = 0.0, d2 = 0.0;
   for (size_t i = 0; i < histo.size(); i++) {
     Mem1Species s(i);
@@ -223,8 +273,15 @@ int main(int argc, char *argv[]) {
     d1 += histo[i] * s.prob.d1;
     d2 += histo[i] * s.prob.d2;
   }
-  std::cout << c0/tmax << ' ' << c1/tmax << ' ' << c2/tmax << ' ' << d0/tmax << ' ' << d1/tmax << ' ' << d2/tmax << std::endl;
+  jout << "{" << std::endl;
+  jout << "\"coop_rate\": " << coop_rate_sum / tmax << "," << std::endl;
+  jout << "\"c0\": " << c0 / tmax << "," << std::endl;
+  jout << "\"c1\": " << c1 / tmax << "," << std::endl;
+  jout << "\"c2\": " << c2 / tmax << "," << std::endl;
+  jout << "\"d0\": " << d0 / tmax << "," << std::endl;
+  jout << "\"d1\": " << d1 / tmax << "," << std::endl;
+  jout << "\"d2\": " << d2 / tmax << "\n}" << std::endl;
+  jout.close();
 
   return 0;
 }
-
