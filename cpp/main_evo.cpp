@@ -9,6 +9,7 @@
 #include <random>
 #include <cassert>
 #include <fstream>
+#include <Eigen/Dense>
 #include "StrategyN3M5.hpp"
 
 // memory-1 species in strategy space discretized with `D`
@@ -16,7 +17,7 @@
 // where each of which denotes cooperation probability conditioned by the last Alice's action and the other players' defectors.
 // Each of which can take discrete values [0,1/D,2/D,...,D/D].
 // ID of a species is given by an integer with base-(D+1).
-// ID can take values [0, 11^6-1 = 1771560]
+// ID can take values [0, (D+1)^6-1]
 // ID=0 : AllD, ID=ID_MAX-1 : AllC
 const size_t DIS = 4ul;
 const size_t ID_MAX = (DIS+1)*(DIS+1)*(DIS+1)*(DIS+1)*(DIS+1)*(DIS+1);
@@ -143,7 +144,44 @@ class Ecosystem {
     }
   }
 
+  // calculate the equilibrium distribution exactly by linear algebra
+  std::vector<double> CalculateEquilibrium(double benefit, double cost, uint64_t N, double sigma, double e) {
+    Eigen::MatrixXd A(ID_MAX, ID_MAX);
+    for (size_t i = 0; i < ID_MAX; i++) {
+      Mem1Species si(i);
+      for (size_t j = 0; j < ID_MAX; j++) {
+        // calculate the transition probability from j to i
+        Mem1Species sj(j);
+        double p = FixationProb(benefit, cost, N, sigma, e, si, sj);
+        A(i, j) = p;
+      }
+    }
+
+    // subtract Ax = x => (A-I)x = 0
+    for (size_t i = 0; i < ID_MAX; i++) {
+      A(i, i) -= 1.0;
+    }
+    // normalization condition
+    for (size_t i = 0; i < ID_MAX; i++) {
+      A(ID_MAX-1, i) += 1.0;
+    }
+
+    Eigen::VectorXd b(ID_MAX);
+    for(int i=0; i<ID_MAX; i++) { b(i) = 0.0;}
+    b(ID_MAX-1) = 1.0;
+    Eigen::VectorXd x = A.householderQr().solve(b);
+    std::vector<double> ans(ID_MAX);
+    for(int i=0; i<ID_MAX; i++) {
+      ans[i] = x(i);
+    }
+    return ans;
+  }
+
   double FixationProb(double benefit, double cost, uint64_t N, double sigma, double e, Mem1Species& mutant) {
+    return FixationProb(benefit, cost, N, sigma, e, mutant, resident);
+  }
+
+  double FixationProb(double benefit, double cost, uint64_t N, double sigma, double e, Mem1Species& mutant, Mem1Species & res) {
     // rho_inv = \sum_{i=0}^{N-1} exp(sigma[S]),
     // where S is defined as
     // S =  i/6(i^2−3iN+6i+3N^2−12N+11)s_{yyy}
@@ -168,15 +206,15 @@ class Ecosystem {
 
     const auto xxx = mutant.StationaryState(mutant, mutant, e);
     const double s_xxx = calc_payoff_from_ss(xxx);
-    const auto xxy = mutant.StationaryState(mutant, resident, e);
+    const auto xxy = mutant.StationaryState(mutant, res, e);
     const double s_xxy = calc_payoff_from_ss(xxy);
-    const auto xyy = mutant.StationaryState(resident, resident, e);
+    const auto xyy = mutant.StationaryState(res, res, e);
     const double s_xyy = calc_payoff_from_ss(xyy);
-    const auto yyy = resident.StationaryState(resident, resident, e);
+    const auto yyy = res.StationaryState(res, res, e);
     const double s_yyy = calc_payoff_from_ss(yyy);
-    const auto yyx = resident.StationaryState(resident, mutant, e);
+    const auto yyx = res.StationaryState(res, mutant, e);
     const double s_yyx = calc_payoff_from_ss(yyx);
-    const auto yxx = resident.StationaryState(mutant, mutant, e);
+    const auto yxx = res.StationaryState(mutant, mutant, e);
     const double s_yxx = calc_payoff_from_ss(yxx);
 
     double rho_inv = 0.0;
@@ -195,18 +233,18 @@ class Ecosystem {
   }
 };
 
-void PrintAbundance(uint64_t tmax, const std::vector<size_t> &histo, const std::string &fname) {
-  typedef std::__1::pair<size_t, size_t> SS;
+void PrintAbundance(const std::vector<double> &histo_d, const std::string &fname) {
+  typedef std::pair<size_t, double> SS;
   auto compare_by_val = [](const SS &a, const SS &b) { return (a.second < b.second); };
-  std::__1::multiset<std::__1::pair<size_t, size_t>, decltype(compare_by_val)> sorted_histo(compare_by_val);
-  for (size_t i = 0; i < histo.size(); i++) {
-    if (histo[i] > 0) {
-      sorted_histo.insert( std::make_pair(i, histo[i]) );
+  std::multiset<SS, decltype(compare_by_val)> sorted_histo(compare_by_val);
+  for (size_t i = 0; i < histo_d.size(); i++) {
+    if (histo_d[i] > 0.0) {
+      sorted_histo.insert( std::make_pair(i, histo_d[i]) );
     }
   }
   std::ofstream fout(fname);
   for (auto it = sorted_histo.rbegin(); it != sorted_histo.rend(); it++) {
-    fout << Mem1Species(it->first).ToString() << ' ' << (double)it->second / tmax * ID_MAX << std::endl;
+    fout << Mem1Species(it->first).ToString() << ' ' << it->second << std::endl;
   }
   fout.close();
 }
@@ -260,7 +298,11 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  PrintAbundance(tmax, histo, "abundance.dat");
+  std::vector<double> histo_d(ID_MAX);
+  for (size_t i = 0; i < histo.size(); i++) {
+    histo_d[i] = (double)histo[i] / tmax * ID_MAX;
+  }
+  PrintAbundance(histo_d, "abundance.dat");
 
   std::ofstream jout("_output.json");
   double c0 = 0.0, c1 = 0.0, c2 = 0.0, d0 = 0.0, d1 = 0.0, d2 = 0.0;
@@ -282,6 +324,10 @@ int main(int argc, char *argv[]) {
   jout << "\"d1\": " << d1 / tmax << "," << std::endl;
   jout << "\"d2\": " << d2 / tmax << "\n}" << std::endl;
   jout.close();
+
+  std::cerr << "Calculating equilibrium" << std::endl;
+  auto eq = eco.CalculateEquilibrium(benefit, cost, N, sigma, e);
+  PrintAbundance(eq, "equilibrium.dat");
 
   return 0;
 }
