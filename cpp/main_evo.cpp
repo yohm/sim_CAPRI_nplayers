@@ -125,9 +125,104 @@ class Mem1Species {
 
     return ans;
   }
+
+  double CooperationProb(StateN3M5 s) const {
+    size_t num_d = 0;
+    if (s.hb[0]) num_d++;
+    if (s.hc[0]) num_d++;
+    if (s.ha[0]) {  // A's last action is d
+      if (num_d == 2) { return prob.d2; }
+      else if (num_d == 1) { return prob.d1; }
+      else { return prob.d0; }  // num_d == 0
+    }
+    else {
+      if (num_d == 2) { return prob.c2; }
+      else if (num_d == 1) { return prob.c1; }
+      else { return prob.c0; } // num_d == 0
+    }
+  };
 };
 
 const size_t Mem1Species::N;
+
+typedef std::array<double, StrategyN3M5::N> ProbArray;
+
+ProbArray CalcCooperationProb(const StrategyN3M5 &strategy) {
+  ProbArray ans;
+  for (size_t i = 0; i < ans.size(); i++ ) {
+    const StateN3M5 s(i);
+    ans[i] = (strategy.ActionAt(s) == C) ? 1.0 : 0.0;
+  }
+  return ans;
+}
+
+ProbArray CalcCooperationProb(const Mem1Species &strategy) {
+  ProbArray ans;
+  for (size_t i = 0; i < ans.size(); i++ ) {
+    const StateN3M5 s(i);
+    ans[i] = strategy.CooperationProb(s);
+  }
+  return ans;
+}
+
+ProbArray StationaryState(double error, const ProbArray &coop_a, const ProbArray &coop_b, const ProbArray &coop_c) {
+  std::cerr << "calculating stationary state" << std::endl;
+
+  typedef Eigen::Triplet<double> T;
+  std::vector<T> tripletVec;
+
+  for (size_t j = 0; j < StrategyN3M5::N; j++) {
+    // calculate transition probability from j to i
+    const StateN3M5 sj(j);
+    double c_a = coop_a[sj.ID()];
+    double c_b = coop_b[sj.StateFromB().ID()];
+    double c_c = coop_c[sj.StateFromC().ID()];
+    // cooperation probability taking noise into account
+    c_a = (1.0 - error) * c_a + error * (1.0 - c_a);
+    c_b = (1.0 - error) * c_b + error * (1.0 - c_b);
+    c_c = (1.0 - error) * c_c + error * (1.0 - c_c);
+
+    for (size_t t = 0; t < 8; t++) {
+      Action act_a = (t & 1ul) ? D : C;
+      Action act_b = (t & 2ul) ? D : C;
+      Action act_c = (t & 4ul) ? D : C;
+      size_t i = sj.NextState(act_a, act_b, act_c).ID();
+      double p_a = (act_a == C) ? c_a : (1.0-c_a);
+      double p_b = (act_b == C) ? c_b : (1.0-c_b);
+      double p_c = (act_c == C) ? c_c : (1.0-c_c);
+      tripletVec.emplace_back(i, j, p_a * p_b * p_c);
+    }
+  }
+
+  const size_t S = StrategyN3M5::N;
+  Eigen::SparseMatrix<double> A(S, S);
+  A.setFromTriplets(tripletVec.cbegin(), tripletVec.cend());
+
+  // subtract unit matrix & normalization condition
+  std::vector<T> iVec;
+  for (int i = 0; i < S-1; i++) { iVec.emplace_back(i, i, -1.0); }
+  for (int i = 0; i < S-1; i++) { iVec.emplace_back(S-1, i, 1.0); }
+  Eigen::SparseMatrix<double> I(S, S);
+  I.setFromTriplets(iVec.cbegin(), iVec.cend());
+  A = A + I;
+  std::cerr << "  transition matrix has been created" << std::endl;
+
+  Eigen::VectorXd b = Eigen::VectorXd::Zero(S);
+  b(S-1) = 1.0;
+
+  // Eigen::BiCGSTAB<Eigen::SparseMatrix<double> > solver;
+  Eigen::BiCGSTAB<Eigen::SparseMatrix<double>, Eigen::IncompleteLUT<double> > solver;
+  solver.compute(A);
+  Eigen::VectorXd x = solver.solve(b);
+
+  std::cerr << "#iterations:     " << solver.iterations() << std::endl;
+  std::cerr << "estimated error: " << solver.error() << std::endl;
+
+  std::array<double, S> ans = {0};
+  for (int i = 0; i < S; i++) { ans[i] = x[i]; }
+  return ans;
+}
+
 
 class Ecosystem {
  public:
