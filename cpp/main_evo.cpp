@@ -19,7 +19,7 @@
 // ID of a species is given by an integer with base-(D+1).
 // ID can take values [0, (D+1)^6-1]
 // ID=0 : AllD, ID=ID_MAX-1 : AllC
-const size_t DIS = 4ul;
+const size_t DIS = 3ul;
 const size_t ID_MAX = (DIS+1)*(DIS+1)*(DIS+1)*(DIS+1)*(DIS+1)*(DIS+1);
 class Cprobs {
  public:
@@ -150,11 +150,20 @@ class Ecosystem {
     for (size_t i = 0; i < ID_MAX; i++) {
       Mem1Species si(i);
       for (size_t j = 0; j < ID_MAX; j++) {
+        if (i == j) continue;
         // calculate the transition probability from j to i
         Mem1Species sj(j);
         double p = FixationProb(benefit, cost, N, sigma, e, si, sj);
-        A(i, j) = p;
+        A(i, j) = p * (1.0 / ID_MAX);
       }
+    }
+    for (size_t i = 0; i < ID_MAX; i++) {
+      double p_sum = 0.0;
+      for (size_t j = 0; j < ID_MAX; j++) {
+        if (i == j) continue;
+        p_sum += A(j, i);
+      }
+      A(i, i) = 1.0 - p_sum; // probability that the state doesn't change
     }
 
     // subtract Ax = x => (A-I)x = 0
