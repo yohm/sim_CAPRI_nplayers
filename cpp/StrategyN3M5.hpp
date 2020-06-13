@@ -177,6 +177,14 @@ class StrategyN3M5 {
   uint64_t NextITGState(const StateN3M5 &s) const; // Trace the intra-transition graph by one step
   std::vector<uint64_t> TraceStates(uint64_t start, const StrategyN3M5 *B = nullptr, const StrategyN3M5 *C = nullptr);
   UnionFind MinimizeDFA(bool noisy = false);
+
+  static StrategyN3M5 AllC();
+  static StrategyN3M5 AllD();
+  static StrategyN3M5 TFT();
+  static StrategyN3M5 WSLS();
+  static StrategyN3M5 AON5();
+  static StrategyN3M5 FUSS_m3();
+  static StrategyN3M5 CAPRI3();
  private:
   const std::bitset<N> actions;
   UnionFind min_auto_cache[2];  // cache of simplified and full automaton

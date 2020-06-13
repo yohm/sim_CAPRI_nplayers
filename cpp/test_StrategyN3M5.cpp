@@ -54,8 +54,7 @@ void test_State() {
 
 
 void test_AllC() {
-  std::bitset<32768> allc_b(0ull);
-  StrategyN3M5 allc(allc_b);
+  StrategyN3M5 allc = StrategyN3M5::AllC();
 
   std::string s = allc.ToString();
   myassert(s.size() == 32768);
@@ -77,10 +76,7 @@ void test_AllC() {
 
 
 void test_AllD() {
-  const size_t N = StrategyN3M5::N;
-  std::bitset<N> alld_b;
-  for (size_t i = 0; i < N; i++) { alld_b.set(i); }
-  StrategyN3M5 alld(alld_b);
+  StrategyN3M5 alld = StrategyN3M5::AllD();
 
   myassert(alld.IsDefensibleDFA() == true);
   myassert(alld.IsEfficientTopo() == false);
@@ -102,14 +98,7 @@ void test_AllD() {
 }
 
 void test_TFT() {
-  const size_t N = StrategyN3M5::N;
-  std::bitset<N> tft_b;
-  for (size_t i = 0; i < N; i++) {
-    const size_t mask_b0 = 1ull << 5ul, mask_c0 = 1ull << 10ul;
-    if(i & mask_b0 || i & mask_c0) { tft_b.set(i); }
-  }
-
-  StrategyN3M5 tft(tft_b);
+  StrategyN3M5 tft = StrategyN3M5::TFT();
   myassert(tft.IsDefensibleDFA() == true);
   myassert(tft.IsEfficient() == false);
   myassert(tft.IsEfficientTopo() == false);
@@ -142,15 +131,7 @@ void test_TFT() {
 }
 
 void test_WSLS() {
-  const size_t N = StrategyN3M5::N;
-  std::bitset<N> wsls_b;
-  for (size_t i = 0; i < N; i++) {
-    const size_t mask_a0 = 1ull << 0ul, mask_b0 = 1ull << 5ul, mask_c0 = 1ull << 10ul;
-    const size_t mask = mask_a0 | mask_b0 | mask_c0;
-    if ((i & mask) == mask || (i & mask) == 0ull) {} // last action profile is ccc or ddd => C
-    else { wsls_b.set(i); }
-  }
-  StrategyN3M5 wsls(wsls_b);
+  StrategyN3M5 wsls = StrategyN3M5::WSLS();
   myassert(wsls.IsDefensibleDFA() == false);
   myassert(wsls.IsEfficient() == true);
   myassert(wsls.IsEfficientTopo() == true);
@@ -175,26 +156,7 @@ void test_WSLS() {
 
 
 void test_m3_FUSS() {
-  // in m3 results, state i is denoted by a2a1a0_b2b1b0_c2c1c0 in binary
-  const std::string m3 = "cdcdcdcdddcdddddcccdcdcdddddddddcdcdcdcdddddddddcdcdcdcdddddddddc"
-                         "cddccddcccdcccddcdddcddddddddddccddccddcccdcccddcdddcdddddddddddc"
-                         "cddccdcccdccddcccccdccddccddccdccddccdccddccddcdcccdccddccddccccd"
-                         "dccddcccdcdcddcddccddddddddcdcccdccddcdcdcdcddcdcdcddddddddddcdcd"
-                         "cdcdddddddddcdcdcdcdddddddddcdcdcdcdddddddddcdcdcdcdddddddddccddc"
-                         "cddcccdcccddccddcddddddddddccddccddcccdcccddcdddcdddddddddddccddc"
-                         "cdccddccddcdcccdccddccddccdccddccdccddccddcdcccdccddccddccccddccd"
-                         "dcdcdcdcddcdddcddddddddddccddccddcdcdcdcddcdddcdddddddddd";
-  const size_t N = StrategyN3M5::N;
-  std::bitset<N> fuss_b;
-  for (size_t i = 0; i < N; i++) {
-    const size_t a_hist = (i & 7ul), b_hist = (i&(7ul << 5ul)) >> 5ul, c_hist = (i & (7ul << 10ul)) >> 10ul;
-    const size_t m3_idx = (a_hist << 6ul) | (b_hist << 3ul) | (c_hist);
-    if (m3.at(m3_idx) == 'c') { fuss_b.reset(i); }
-    else if (m3.at(m3_idx) == 'd') { fuss_b.set(i); }
-    else { throw std::runtime_error("invalid input format"); }
-  }
-
-  StrategyN3M5 fuss(fuss_b);
+  StrategyN3M5 fuss = StrategyN3M5::FUSS_m3();
 
   const auto simp_automaton = fuss.MinimizeDFA(false).to_map();
   std::cerr << "autom_size: " << simp_automaton.size() << std::endl;
@@ -223,73 +185,7 @@ void test_m3_FUSS() {
 }
 
 void test_CAPRI3() {
-  const size_t N = StrategyN3M5::N;
-  typedef std::bitset<15> B;
-
-  auto capri_action_at = [](size_t i)->Action {
-    const B I(i);
-    std::string s = I.to_string('c', 'D');
-    std::reverse(s.begin(), s.end());
-    const std::string Istr = s.substr(0,5) + '-' + s.substr(5,5) + '-' + s.substr(10,5);
-
-    const B oldest = 0b10000'10000'10000ul, latest = 0b00001'00001'00001ul;
-    const B latest2 = (latest << 1ul) | latest;
-    const B a_mask = 0b00000'00000'11111ul;
-    const B b_mask = a_mask << 5ul, c_mask = a_mask << 10ul;
-    const size_t na = (I & a_mask).count(), nb = (I & b_mask).count(), nc = (I & c_mask).count();
-
-    size_t last_ccc = 5;
-    for (size_t t = 0; t < 5; t++) {
-      if ((I & (latest<<t)) == B(0ul)) {  // CCC is found at t step before
-        last_ccc = t;
-        break;
-      }
-    }
-
-    // C: cooperate if the mutual cooperation is formed at last two rounds
-    if ((I & latest2) == 0ul) {
-      return C;
-    }
-    // C0: cooperate if the last action profile is CCC & relative payoff profile is equal
-    else if ((I & latest) == 0ul) {
-      if (na == nb && na == nc) {
-        return C;
-      }
-    }
-    else if (last_ccc > 0 && last_ccc < 5) {
-      B mask = latest;
-      for (size_t t = 0; t < last_ccc; t++) { mask = ((mask << 1ul) | latest); }
-      // A: Accept punishment by prescribing *C* if all your relative payoffs are at least zero.
-      size_t pa = (I & mask & a_mask).count();
-      size_t pb = (I & mask & b_mask).count();
-      size_t pc = (I & mask & c_mask).count();
-      if (pa >= pb && pa >= pc) {
-        return C;
-      }
-      // P: Punish by *D* if any of your relative payoffs is negative.
-      else {
-        return D;
-      }
-    }
-
-    // R: grab the chance to recover
-    if (I == 0b11111'11110'11110 || I == 0b11110'11111'11110 || I == 0b11110'11110'11111) {
-      // R: If payoff profile is (+1,+1,-1), prescribe *C*.
-      return C;
-    }
-    if (I == 0b11110'11100'11100 || I == 0b11100'11110'11100 || I == 0b11100'11100'11110) {
-      return C;
-    }
-    // In all other cases, *D*
-    return D;
-  };
-
-  std::bitset<N> capri_b = 0ul;
-  for (size_t i = 0; i < N; i++) {
-    if (capri_action_at(i) == D) capri_b.set(i);
-  }
-
-  StrategyN3M5 capri(capri_b);
+  StrategyN3M5 capri = StrategyN3M5::CAPRI3();
 
   {
     uint64_t i = StateN3M5("cdccc_dcccc_ccccc").ID();
@@ -423,13 +319,20 @@ void test_sCAPRI3() {
 int main() {
   std::cout << "Testing StrategyN3M5 class" << std::endl;
 
-  // test_State();
-  // test_AllC();
-  // test_AllD();
-  // test_TFT();
-  // test_WSLS();
-  // test_m3_FUSS();
-  // test_CAPRI3();
+  test_State();
+  std::cerr << "Testing AllC" << std::endl;
+  test_AllC();
+  std::cerr << "Testing AllD" << std::endl;
+  test_AllD();
+  std::cerr << "Testing TFT" << std::endl;
+  test_TFT();
+  std::cerr << "Testing WSLS" << std::endl;
+  test_WSLS();
+  std::cerr << "Testing FUSS" << std::endl;
+  test_m3_FUSS();
+  std::cerr << "Testing CAPRI3" << std::endl;
+  test_CAPRI3();
+  std::cerr << "Testing sCAPRI3" << std::endl;
   test_sCAPRI3();
   return 0;
 }

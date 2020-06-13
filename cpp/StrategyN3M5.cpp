@@ -447,3 +447,132 @@ bool StrategyN3M5::_Equivalent(size_t i, size_t j, UnionFind &uf_0, bool noisy) 
   }
   return true;
 }
+
+StrategyN3M5 StrategyN3M5::AllC() {
+  std::bitset<N> allc_b(0ull);
+  return std::move(StrategyN3M5(allc_b));
+}
+
+StrategyN3M5 StrategyN3M5::AllD() {
+  std::bitset<N> alld_b;
+  for (size_t i = 0; i < N; i++) { alld_b.set(i); }
+  return std::move(StrategyN3M5(alld_b));
+}
+
+StrategyN3M5 StrategyN3M5::TFT() {
+  std::bitset<N> tft_b;
+  for (size_t i = 0; i < N; i++) {
+    const size_t mask_b0 = 1ull << 5ul, mask_c0 = 1ull << 10ul;
+    if(i & mask_b0 || i & mask_c0) { tft_b.set(i); }
+  }
+  return std::move(StrategyN3M5(tft_b));
+}
+
+StrategyN3M5 StrategyN3M5::WSLS() {
+  std::bitset<N> wsls_b;
+  for (size_t i = 0; i < N; i++) {
+    const size_t mask_a0 = 1ull << 0ul, mask_b0 = 1ull << 5ul, mask_c0 = 1ull << 10ul;
+    const size_t mask = mask_a0 | mask_b0 | mask_c0;
+    if ((i & mask) == mask || (i & mask) == 0ull) {} // last action profile is ccc or ddd => C
+    else { wsls_b.set(i); }
+  }
+  return std::move(StrategyN3M5(wsls_b));
+}
+
+StrategyN3M5 StrategyN3M5::AON5() {
+  std::bitset<N> aon5_b;
+  for (size_t i = 0; i < N; i++) {
+    const size_t mask_a0 = 0b11111ull << 0ul, mask_b0 = 0b11111ull << 5ul, mask_c0 = 0b11111ull << 10ul;
+    const size_t ah = i & mask_a0, bh = (i & mask_b0) >> 5ul, ch = (i & mask_c0) >> 10ul;
+    if (ah == bh && ah == ch) { aon5_b.set(i); }
+  }
+  return std::move(StrategyN3M5(aon5_b));
+}
+
+StrategyN3M5 StrategyN3M5::CAPRI3() {
+  typedef std::bitset<15> B;
+  auto capri_action_at = [](size_t i)->Action {
+    const B I(i);
+    std::string s = I.to_string('c', 'D');
+    std::reverse(s.begin(), s.end());
+    const std::string Istr = s.substr(0,5) + '-' + s.substr(5,5) + '-' + s.substr(10,5);
+
+    const B oldest = 0b10000'10000'10000ul, latest = 0b00001'00001'00001ul;
+    const B latest2 = (latest << 1ul) | latest;
+    const B a_mask = 0b00000'00000'11111ul;
+    const B b_mask = a_mask << 5ul, c_mask = a_mask << 10ul;
+    const size_t na = (I & a_mask).count(), nb = (I & b_mask).count(), nc = (I & c_mask).count();
+
+    size_t last_ccc = 5;
+    for (size_t t = 0; t < 5; t++) {
+      if ((I & (latest<<t)) == B(0ul)) {  // CCC is found at t step before
+        last_ccc = t;
+        break;
+      }
+    }
+
+    // C: cooperate if the mutual cooperation is formed at last two rounds
+    if ((I & latest2) == 0ul) {
+      return C;
+    }
+      // C0: cooperate if the last action profile is CCC & relative payoff profile is equal
+    else if ((I & latest) == 0ul) {
+      if (na == nb && na == nc) {
+        return C;
+      }
+    }
+    else if (last_ccc > 0 && last_ccc < 5) {
+      B mask = latest;
+      for (size_t t = 0; t < last_ccc; t++) { mask = ((mask << 1ul) | latest); }
+      // A: Accept punishment by prescribing *C* if all your relative payoffs are at least zero.
+      size_t pa = (I & mask & a_mask).count();
+      size_t pb = (I & mask & b_mask).count();
+      size_t pc = (I & mask & c_mask).count();
+      if (pa >= pb && pa >= pc) {
+        return C;
+      }
+        // P: Punish by *D* if any of your relative payoffs is negative.
+      else {
+        return D;
+      }
+    }
+
+    // R: grab the chance to recover
+    if (I == 0b11111'11110'11110 || I == 0b11110'11111'11110 || I == 0b11110'11110'11111) {
+      // R: If payoff profile is (+1,+1,-1), prescribe *C*.
+      return C;
+    }
+    if (I == 0b11110'11100'11100 || I == 0b11100'11110'11100 || I == 0b11100'11100'11110) {
+      return C;
+    }
+    // In all other cases, *D*
+    return D;
+  };
+
+  std::bitset<N> capri3_b;
+  for (size_t i = 0; i < N; i++) {
+    if (capri_action_at(i) == D) { capri3_b.set(i); }
+  }
+  return std::move(StrategyN3M5(capri3_b));
+}
+
+StrategyN3M5 StrategyN3M5::FUSS_m3() {
+  // in m3 results, state i is denoted by a2a1a0_b2b1b0_c2c1c0 in binary
+  const std::string m3 = "cdcdcdcdddcdddddcccdcdcdddddddddcdcdcdcdddddddddcdcdcdcdddddddddc"
+                         "cddccddcccdcccddcdddcddddddddddccddccddcccdcccddcdddcdddddddddddc"
+                         "cddccdcccdccddcccccdccddccddccdccddccdccddccddcdcccdccddccddccccd"
+                         "dccddcccdcdcddcddccddddddddcdcccdccddcdcdcdcddcdcdcddddddddddcdcd"
+                         "cdcdddddddddcdcdcdcdddddddddcdcdcdcdddddddddcdcdcdcdddddddddccddc"
+                         "cddcccdcccddccddcddddddddddccddccddcccdcccddcdddcdddddddddddccddc"
+                         "cdccddccddcdcccdccddccddccdccddccdccddccddcdcccdccddccddccccddccd"
+                         "dcdcdcdcddcdddcddddddddddccddccddcdcdcdcddcdddcdddddddddd";
+  std::bitset<N> fuss_b;
+  for (size_t i = 0; i < N; i++) {
+    const size_t a_hist = (i & 0b111ul), b_hist = (i&(0b111ul << 5ul)) >> 5ul, c_hist = (i & (7ul << 10ul)) >> 10ul;
+    const size_t m3_idx = (a_hist << 6ul) | (b_hist << 3ul) | (c_hist);
+    if (m3.at(m3_idx) == 'c') { fuss_b.reset(i); }
+    else if (m3.at(m3_idx) == 'd') { fuss_b.set(i); }
+    else { throw std::runtime_error("invalid input format"); }
+  }
+  return std::move(StrategyN3M5(fuss_b));
+}
