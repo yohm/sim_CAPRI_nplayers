@@ -183,50 +183,6 @@ uint64_t StrategyN3M5::NextITGState(const StateN3M5 &s) const {
   return s.NextState(move_a, move_b, move_c).ID();
 }
 
-/*
-std::array<double, StrategyN3M5::N> StrategyN3M5::StationaryState2(double e, const StrategyN3M5 *B, const StrategyN3M5 *C) const {
-  if (B == nullptr) { B = this; }
-  if (C == nullptr) { C = this; }
-  Eigen::Matrix<double, N, N> A;
-
-  for (int i = 0; i < N; i++) {
-    const StateN3M5 si(i);
-    for (int j = 0; j < N; j++) {
-      // calculate transition probability from j to i
-      const StateN3M5 sj(j);
-      Action act_a = ActionAt(sj);
-      Action act_b = B->ActionAt(sj.StateFromB());
-      Action act_c = C->ActionAt(sj.StateFromC());
-      StateN3M5 next = sj.NextState(act_a, act_b, act_c);
-      int d = next.NumDiffInT1(si);
-      if (d < 0) {
-        A(i, j) = 0.0;
-      } else if (d == 0) {
-        A(i, j) = (1.0 - e) * (1.0 - e);
-      } else if (d == 1) {
-        A(i, j) = (1.0 - e) * e;
-      } else if (d == 2) {
-        A(i, j) = e * e;
-      } else {
-        assert(false);
-      }
-    }
-    A(i, i) = A(i, i) - 1.0;  // subtract unit matrix
-  }
-  for (int i = 0; i < N; i++) { A(N-1, i) += 1.0; }  // normalization condition
-
-  Eigen::VectorXd b(N);
-  for (int i = 0; i < N-1; i++) { b(i) = 0.0; }
-  b(N-1) = 1.0;
-
-  Eigen::VectorXd x = A.colPivHouseholderQr().solve(b);
-
-  std::array<double, N> ans = {0.0};
-  for (int i = 0; i < N; i++) { ans[i] = x(i); }
-  return ans;
-}
- */
-
 std::array<double, StrategyN3M5::N> StrategyN3M5::StationaryState(double e, const StrategyN3M5 *B, const StrategyN3M5 *C) const {
   std::cerr << "calculating stationary state" << std::endl;
   if (B == nullptr) { B = this; }
