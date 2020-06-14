@@ -19,7 +19,7 @@
 // ID of a species is given by an integer with base-(D+1).
 // ID can take values [0, (D+1)^6-1]
 // ID=0 : AllD, ID=ID_MAX-1 : AllC
-const size_t DIS = 3ul;
+const size_t DIS = 2ul;
 const size_t ID_MAX = (DIS+1)*(DIS+1)*(DIS+1)*(DIS+1)*(DIS+1)*(DIS+1);
 class Cprobs {
  public:
@@ -145,93 +145,150 @@ class Mem1Species {
 
 const size_t Mem1Species::N;
 
-typedef std::array<double, StrategyN3M5::N> ProbArray;
-
-ProbArray CalcCooperationProb(const StrategyN3M5 &strategy) {
-  ProbArray ans;
-  for (size_t i = 0; i < ans.size(); i++ ) {
-    const StateN3M5 s(i);
-    ans[i] = (strategy.ActionAt(s) == C) ? 1.0 : 0.0;
-  }
-  return ans;
-}
-
-ProbArray CalcCooperationProb(const Mem1Species &strategy) {
-  ProbArray ans;
-  for (size_t i = 0; i < ans.size(); i++ ) {
-    const StateN3M5 s(i);
-    ans[i] = strategy.CooperationProb(s);
-  }
-  return ans;
-}
-
-ProbArray StationaryState(double error, const ProbArray &coop_a, const ProbArray &coop_b, const ProbArray &coop_c) {
-  std::cerr << "calculating stationary state" << std::endl;
-
-  typedef Eigen::Triplet<double> T;
-  std::vector<T> tripletVec;
-
-  for (size_t j = 0; j < StrategyN3M5::N; j++) {
-    // calculate transition probability from j to i
-    const StateN3M5 sj(j);
-    double c_a = coop_a[sj.ID()];
-    double c_b = coop_b[sj.StateFromB().ID()];
-    double c_c = coop_c[sj.StateFromC().ID()];
-    // cooperation probability taking noise into account
-    c_a = (1.0 - error) * c_a + error * (1.0 - c_a);
-    c_b = (1.0 - error) * c_b + error * (1.0 - c_b);
-    c_c = (1.0 - error) * c_c + error * (1.0 - c_c);
-
-    for (size_t t = 0; t < 8; t++) {
-      Action act_a = (t & 1ul) ? D : C;
-      Action act_b = (t & 2ul) ? D : C;
-      Action act_c = (t & 4ul) ? D : C;
-      size_t i = sj.NextState(act_a, act_b, act_c).ID();
-      double p_a = (act_a == C) ? c_a : (1.0-c_a);
-      double p_b = (act_b == C) ? c_b : (1.0-c_b);
-      double p_c = (act_c == C) ? c_c : (1.0-c_c);
-      tripletVec.emplace_back(i, j, p_a * p_b * p_c);
+class Species { // either Mem1Species or StrategyN3M5
+ public:
+  Species(size_t ID) : m1(Mem1Species(0)), m5(std::bitset<StrategyN3M5::N>()) {
+    if (ID < ID_MAX) {
+      is_m1 = true;
+      m1 = Mem1Species(ID);
+      m5 = StrategyN3M5(std::bitset<StrategyN3M5::N>());
     }
+    else if (ID == ID_MAX) {
+      is_m1 = false;
+      m1 = Mem1Species(0);
+      m5 = StrategyN3M5::CAPRI3();
+    }
+    else {
+      throw std::runtime_error("must not happen");
+    }
+  };
+  Species(const Mem1Species &_m1) : is_m1(true), m1(_m1), m5(StrategyN3M5(std::bitset<StrategyN3M5::N>())) {};
+  Species(const StrategyN3M5 &_m5) : is_m1(false), m1(Mem1Species(0)), m5(_m5) {};
+  Species & operator=(const Species & rhs) { is_m1 = rhs.is_m1; m1 = rhs.m1; m5 = rhs.m5; return *this; }
+  bool is_m1;
+  Mem1Species m1;
+  StrategyN3M5 m5;
+  std::string ToString() const {
+    if (is_m1) { return m1.ToString(); }
+    else { return std::string("CAPRI3"); }
+  }
+  double CooperationProb(const StateN3M5 &s) const {
+    if (is_m1) { return m1.CooperationProb(s); }
+    else { return m5.ActionAt(s) == C ? 1.0 : 0.0; }
+  }
+  std::array<double, StrategyN3M5::N> StationaryState(const Species &sb, const Species &sc, double error) {
+    std::cerr << "calculating stationary state" << std::endl;
+
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletVec;
+
+    for (size_t j = 0; j < StrategyN3M5::N; j++) {
+      // calculate transition probability from j to i
+      const StateN3M5 sj(j);
+      double c_a = CooperationProb(sj);
+      double c_b = sb.CooperationProb(sj.StateFromB());
+      double c_c = sc.CooperationProb(sj.StateFromC());
+      // cooperation probability taking noise into account
+      c_a = (1.0 - error) * c_a + error * (1.0 - c_a);
+      c_b = (1.0 - error) * c_b + error * (1.0 - c_b);
+      c_c = (1.0 - error) * c_c + error * (1.0 - c_c);
+
+      for (size_t t = 0; t < 8; t++) {
+        Action act_a = (t & 1ul) ? D : C;
+        Action act_b = (t & 2ul) ? D : C;
+        Action act_c = (t & 4ul) ? D : C;
+        size_t i = sj.NextState(act_a, act_b, act_c).ID();
+        double p_a = (act_a == C) ? c_a : (1.0-c_a);
+        double p_b = (act_b == C) ? c_b : (1.0-c_b);
+        double p_c = (act_c == C) ? c_c : (1.0-c_c);
+        tripletVec.emplace_back(i, j, p_a * p_b * p_c);
+      }
+    }
+
+    const size_t S = StrategyN3M5::N;
+    Eigen::SparseMatrix<double> A(S, S);
+    A.setFromTriplets(tripletVec.cbegin(), tripletVec.cend());
+
+    // subtract unit matrix & normalization condition
+    std::vector<T> iVec;
+    for (int i = 0; i < S-1; i++) { iVec.emplace_back(i, i, -1.0); }
+    for (int i = 0; i < S-1; i++) { iVec.emplace_back(S-1, i, 1.0); }
+    Eigen::SparseMatrix<double> I(S, S);
+    I.setFromTriplets(iVec.cbegin(), iVec.cend());
+    A = A + I;
+    std::cerr << "  transition matrix has been created" << std::endl;
+
+    Eigen::VectorXd b = Eigen::VectorXd::Zero(S);
+    b(S-1) = 1.0;
+
+    // Eigen::BiCGSTAB<Eigen::SparseMatrix<double> > solver;
+    Eigen::BiCGSTAB<Eigen::SparseMatrix<double>, Eigen::IncompleteLUT<double> > solver;
+    solver.compute(A);
+    Eigen::VectorXd x = solver.solve(b);
+
+    std::cerr << "#iterations:     " << solver.iterations() << std::endl;
+    std::cerr << "estimated error: " << solver.error() << std::endl;
+
+    std::array<double, S> ans = {0};
+    for (int i = 0; i < S; i++) { ans[i] = x[i]; }
+    return ans;
   }
 
-  const size_t S = StrategyN3M5::N;
-  Eigen::SparseMatrix<double> A(S, S);
-  A.setFromTriplets(tripletVec.cbegin(), tripletVec.cend());
+  std::array<double,3> Payoffs(const Species &sb, const Species &sc, double benefit, double cost, double error) {
+    std::array<double, 3> ans = {0.0, 0.0, 0.0};
+    if (is_m1 && sb.is_m1 && sc.is_m1) {
+      auto ss = m1.StationaryState(sb.m1, sc.m1, error);
+      for (size_t i = 0; i < 8; i++) {
+        size_t num_c = 0;
+        double cost_A = 0.0, cost_B = 0.0, cost_C = 0.0;
+        if ((i & 1ul) == 0) { num_c += 1; cost_A += cost; }
+        if ((i & 2ul) == 0) { num_c += 1; cost_B += cost; }
+        if ((i & 4ul) == 0) { num_c += 1; cost_C += cost; }
+        ans[0] += ss[i] * (num_c * benefit - cost_A);
+        ans[1] += ss[i] * (num_c * benefit - cost_B);
+        ans[2] += ss[i] * (num_c * benefit - cost_C);
+      };
+    }
+    else {
+      auto ss = StationaryState(sb, sc, error);
+      for (size_t i = 0; i < ss.size(); i++) {
+        StateN3M5 s(i);
+        size_t num_c = 0;
+        double cost_A = 0.0, cost_B = 0.0, cost_C = 0.0;
+        if (!s.ha[0]) { num_c += 1; cost_A += cost; }
+        if (!s.hb[0]) { num_c += 1; cost_B += cost; }
+        if (!s.hc[0]) { num_c += 1; cost_C += cost; }
+        ans[0] += ss[i] * (num_c * benefit - cost_A);
+        ans[1] += ss[i] * (num_c * benefit - cost_B);
+        ans[2] += ss[i] * (num_c * benefit - cost_C);
+      }
+    }
+    return ans;
+  }
 
-  // subtract unit matrix & normalization condition
-  std::vector<T> iVec;
-  for (int i = 0; i < S-1; i++) { iVec.emplace_back(i, i, -1.0); }
-  for (int i = 0; i < S-1; i++) { iVec.emplace_back(S-1, i, 1.0); }
-  Eigen::SparseMatrix<double> I(S, S);
-  I.setFromTriplets(iVec.cbegin(), iVec.cend());
-  A = A + I;
-  std::cerr << "  transition matrix has been created" << std::endl;
+};
 
-  Eigen::VectorXd b = Eigen::VectorXd::Zero(S);
-  b(S-1) = 1.0;
-
-  // Eigen::BiCGSTAB<Eigen::SparseMatrix<double> > solver;
-  Eigen::BiCGSTAB<Eigen::SparseMatrix<double>, Eigen::IncompleteLUT<double> > solver;
-  solver.compute(A);
-  Eigen::VectorXd x = solver.solve(b);
-
-  std::cerr << "#iterations:     " << solver.iterations() << std::endl;
-  std::cerr << "estimated error: " << solver.error() << std::endl;
-
-  std::array<double, S> ans = {0};
-  for (int i = 0; i < S; i++) { ans[i] = x[i]; }
-  return ans;
-}
+typedef std::array<double, StrategyN3M5::N> ProbArray;
 
 
 class Ecosystem {
  public:
-  Ecosystem(uint64_t seed) : resident(0), rnd(seed) {};
-  Mem1Species resident;
+  Ecosystem(uint64_t seed, bool with_capri) : resident(Mem1Species(0)), rnd(seed) {
+    if (with_capri) { N_SPECIES = ID_MAX + 1; }
+    else { N_SPECIES = ID_MAX; }
+  };
+  Species resident;
   std::mt19937_64 rnd;
+  size_t N_SPECIES;
+  size_t ResidentID() const {
+    if (resident.is_m1) return resident.m1.id;
+    else return ID_MAX;
+  }
   void UpdateResident(double benefit, double cost, uint64_t N, double sigma, double e) {
-    std::uniform_real_distribution<double> uni(0.0, ID_MAX);
-    Mem1Species mutant = Mem1Species( uni(rnd) );
+    std::uniform_int_distribution<size_t> uni(0, N_SPECIES-1);
+    size_t r = uni(rnd);
+    Species mutant = (r < ID_MAX) ? Species(Mem1Species(r)) : Species(StrategyN3M5::CAPRI3());
+
     double rho = FixationProb(benefit, cost, N, sigma, e, mutant);
     std::uniform_real_distribution<double> uni1(0.0, 1.0);
     if( uni1(rnd) < rho ) {
@@ -241,20 +298,39 @@ class Ecosystem {
 
   // calculate the equilibrium distribution exactly by linear algebra
   std::vector<double> CalculateEquilibrium(double benefit, double cost, uint64_t N, double sigma, double e) {
-    Eigen::MatrixXd A(ID_MAX, ID_MAX);
+    Eigen::initParallel();
+    Eigen::MatrixXd A(N_SPECIES, N_SPECIES);
+    #pragma omp parallel for
     for (size_t i = 0; i < ID_MAX; i++) {
-      Mem1Species si(i);
-      for (size_t j = 0; j < ID_MAX; j++) {
+      Species si = (i < ID_MAX) ? Species(Mem1Species(i)) : Species(StrategyN3M5::CAPRI3());
+      for (size_t j = 0; j < N_SPECIES; j++) {
         if (i == j) continue;
         // calculate the transition probability from j to i
-        Mem1Species sj(j);
+        Species sj = (j < ID_MAX) ? Species(Mem1Species(j)) : Species(StrategyN3M5::CAPRI3());
+        if (i == ID_MAX || j == ID_MAX) {
+          std::cerr << "calculating rho for (" << i << ", " << j << ")" << std::endl;
+        }
         double p = FixationProb(benefit, cost, N, sigma, e, si, sj);
-        A(i, j) = p * (1.0 / ID_MAX);
+        A(i, j) = p * (1.0 / N_SPECIES);
       }
     }
-    for (size_t i = 0; i < ID_MAX; i++) {
+    for (size_t i = ID_MAX; i < N_SPECIES; i++) {
+      Species si = (i < ID_MAX) ? Species(Mem1Species(i)) : Species(StrategyN3M5::CAPRI3());
+      #pragma omp parallel for
+      for (size_t j = 0; j < N_SPECIES; j++) {
+        if (i == j) continue;
+        // calculate the transition probability from j to i
+        Species sj = (j < ID_MAX) ? Species(Mem1Species(j)) : Species(StrategyN3M5::CAPRI3());
+        if (i == ID_MAX || j == ID_MAX) {
+          std::cerr << "calculating rho for (" << i << ", " << j << ")" << std::endl;
+        }
+        double p = FixationProb(benefit, cost, N, sigma, e, si, sj);
+        A(i, j) = p * (1.0 / N_SPECIES);
+      }
+    }
+    for (size_t i = 0; i < N_SPECIES; i++) {
       double p_sum = 0.0;
-      for (size_t j = 0; j < ID_MAX; j++) {
+      for (size_t j = 0; j < N_SPECIES; j++) {
         if (i == j) continue;
         p_sum += A(j, i);
       }
@@ -262,30 +338,30 @@ class Ecosystem {
     }
 
     // subtract Ax = x => (A-I)x = 0
-    for (size_t i = 0; i < ID_MAX; i++) {
+    for (size_t i = 0; i < N_SPECIES; i++) {
       A(i, i) -= 1.0;
     }
     // normalization condition
-    for (size_t i = 0; i < ID_MAX; i++) {
-      A(ID_MAX-1, i) += 1.0;
+    for (size_t i = 0; i < N_SPECIES; i++) {
+      A(N_SPECIES-1, i) += 1.0;
     }
 
-    Eigen::VectorXd b(ID_MAX);
-    for(int i=0; i<ID_MAX; i++) { b(i) = 0.0;}
-    b(ID_MAX-1) = 1.0;
+    Eigen::VectorXd b(N_SPECIES);
+    for(int i=0; i<N_SPECIES; i++) { b(i) = 0.0;}
+    b(N_SPECIES-1) = 1.0;
     Eigen::VectorXd x = A.householderQr().solve(b);
-    std::vector<double> ans(ID_MAX);
-    for(int i=0; i<ID_MAX; i++) {
+    std::vector<double> ans(N_SPECIES);
+    for(int i=0; i<N_SPECIES; i++) {
       ans[i] = x(i);
     }
     return ans;
   }
 
-  double FixationProb(double benefit, double cost, uint64_t N, double sigma, double e, Mem1Species& mutant) {
+  double FixationProb(double benefit, double cost, uint64_t N, double sigma, double e, Species& mutant) {
     return FixationProb(benefit, cost, N, sigma, e, mutant, resident);
   }
 
-  double FixationProb(double benefit, double cost, uint64_t N, double sigma, double e, Mem1Species& mutant, Mem1Species & res) {
+  double FixationProb(double benefit, double cost, uint64_t N, double sigma, double e, Species& mutant, Species & res) {
     // rho_inv = \sum_{i=0}^{N-1} exp(sigma[S]),
     // where S is defined as
     // S =  i/6(i^2−3iN+6i+3N^2−12N+11)s_{yyy}
@@ -295,31 +371,16 @@ class Ecosystem {
     //     +i/6(i−1)(2i−3N+2))s_{xxy}
     //     −i/6(i^2−3i+2)s_{xxx}
 
-    auto calc_payoff_from_ss = [benefit,cost](const std::array<double,8>& ss) {
-      const double s =
-            ss[0] * (3*benefit-cost)    // ccc
-          + ss[1] * (2*benefit)         // dcc
-          + ss[2] * (2*benefit-cost)    // cdc
-          + ss[3] * (1*benefit)         // ddc
-          + ss[4] * (2*benefit-cost)    // ccd
-          + ss[5] * (1* benefit)        // dcd
-          + ss[6] * (1*benefit-cost)    // cdd
-          + ss[7] * 0.0;                // ddd
-      return s;
-    };
-
-    const auto xxx = mutant.StationaryState(mutant, mutant, e);
-    const double s_xxx = calc_payoff_from_ss(xxx);
-    const auto xxy = mutant.StationaryState(mutant, res, e);
-    const double s_xxy = calc_payoff_from_ss(xxy);
-    const auto xyy = mutant.StationaryState(res, res, e);
-    const double s_xyy = calc_payoff_from_ss(xyy);
-    const auto yyy = res.StationaryState(res, res, e);
-    const double s_yyy = calc_payoff_from_ss(yyy);
-    const auto yyx = res.StationaryState(res, mutant, e);
-    const double s_yyx = calc_payoff_from_ss(yyx);
-    const auto yxx = res.StationaryState(mutant, mutant, e);
-    const double s_yxx = calc_payoff_from_ss(yxx);
+    const auto xxx = mutant.Payoffs(mutant, mutant, benefit, cost, e);
+    const double s_xxx = xxx[0];
+    const auto xxy = mutant.Payoffs(mutant, res, benefit, cost, e);
+    const double s_xxy = xxy[0];
+    const auto xyy = mutant.Payoffs(res, res, benefit, cost, e);
+    const double s_xyy = xyy[0];
+    const auto yyy = res.Payoffs(res, res, benefit, cost, e);
+    const double s_yyy = yyy[0];
+    const double s_yyx = xyy[2];
+    const double s_yxx = xxy[2];
 
     double rho_inv = 0.0;
     for (int i=0; i < N; i++) {
@@ -348,7 +409,7 @@ void PrintAbundance(const std::vector<double> &histo_d, const std::string &fname
   }
   std::ofstream fout(fname);
   for (auto it = sorted_histo.rbegin(); it != sorted_histo.rend(); it++) {
-    fout << Mem1Species(it->first).ToString() << ' ' << it->second << std::endl;
+    fout << Species(it->first).ToString() << ' ' << it->second << std::endl;
   }
   fout.close();
 }
@@ -370,7 +431,7 @@ int main(int argc, char *argv[]) {
   uint64_t tmax = std::strtoull(argv[7], nullptr,0);
   uint64_t seed = std::strtoull(argv[8], nullptr,0);
 
-  Ecosystem eco(seed);
+  Ecosystem eco(seed, true);
   uint64_t t_int = 10000;
   for (uint64_t t = 0; t < t_init; t++) {
     eco.UpdateResident(benefit, cost, N, sigma, e);
@@ -383,34 +444,34 @@ int main(int argc, char *argv[]) {
   std::ofstream tout("timeseries.dat");
   uint64_t t_measure = tmax / 100000 + 1;
 
-  std::vector<size_t> histo(ID_MAX, 0ul);
+  std::vector<size_t> histo(eco.N_SPECIES, 0ul);
   double coop_rate_sum = 0.0;
   for(uint64_t t = 0; t < tmax; t++) {
     eco.UpdateResident(benefit, cost, N, sigma, e);
-    size_t res = eco.resident.id;
+    size_t res = eco.ResidentID();
     histo[res] += 1;
 
-    auto s = eco.resident.StationaryState(eco.resident, eco.resident, e);
-    double coop_rate = s[0] * 1.0 + (s[1]+s[2]+s[4]) * (2.0/3.0) + (s[3]+s[5]+s[6]) * (1.0/3.0);
-    coop_rate_sum += coop_rate;
+    // auto s = eco.resident.StationaryState(eco.resident, eco.resident, e);
+    // double coop_rate = s[0] * 1.0 + (s[1]+s[2]+s[4]) * (2.0/3.0) + (s[3]+s[5]+s[6]) * (1.0/3.0);
+    // coop_rate_sum += coop_rate;
 
     if ( t % t_int == t_int - 1) {
-      std::cerr << t << ' ' << coop_rate << std::endl;
+      // std::cerr << t << ' ' << coop_rate << std::endl;
     }
     if ( t % t_measure == t_measure -1 ) {
-      tout << t << ' ' << coop_rate << std::endl;
+      // tout << t << ' ' << coop_rate << std::endl;
     }
   }
 
-  std::vector<double> histo_d(ID_MAX);
+  std::vector<double> histo_d(eco.N_SPECIES);
   for (size_t i = 0; i < histo.size(); i++) {
-    histo_d[i] = (double)histo[i] / tmax * ID_MAX;
+    histo_d[i] = (double)histo[i] / tmax * eco.N_SPECIES;
   }
   PrintAbundance(histo_d, "abundance.dat");
 
   std::ofstream jout("_output.json");
   double c0 = 0.0, c1 = 0.0, c2 = 0.0, d0 = 0.0, d1 = 0.0, d2 = 0.0;
-  for (size_t i = 0; i < histo.size(); i++) {
+  for (size_t i = 0; i < ID_MAX; i++) {
     Mem1Species s(i);
     c0 += histo[i] * s.prob.c0;
     c1 += histo[i] * s.prob.c1;

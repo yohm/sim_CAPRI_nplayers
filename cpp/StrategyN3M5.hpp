@@ -149,7 +149,8 @@ class StateN3M5 {
 class StrategyN3M5 {
  public:
   static const size_t N = 1ull << 15ull; // == 32768
-  explicit StrategyN3M5(const std::bitset<N> &actions); // construct a strategy from a list of actions. 0=>c,1=>d
+  StrategyN3M5(const std::bitset<N> &actions); // construct a strategy from a list of actions. 0=>c,1=>d
+  StrategyN3M5 &operator=(const StrategyN3M5 & rhs) = default;
 
   std::string ToString() const;
   friend std::ostream &operator<<(std::ostream &os, const StrategyN3M5 &strategy);
@@ -186,7 +187,7 @@ class StrategyN3M5 {
   static StrategyN3M5 FUSS_m3();
   static StrategyN3M5 CAPRI3();
  private:
-  const std::bitset<N> actions;
+  std::bitset<N> actions;
   UnionFind min_auto_cache[2];  // cache of simplified and full automaton
   std::vector<StateN3M5> NextPossibleStates(StateN3M5 current) const;
   bool _Equivalent(size_t i, size_t j, UnionFind &uf_0, bool noisy) const;
