@@ -304,44 +304,28 @@ class Species { // either Mem1Species or StrategyN3M5
 
 class Ecosystem {
  public:
-  Ecosystem(size_t discrete_level, bool with_capri) : DIS(discrete_level) {
-    N_M1 = Mem1Species::N_M1_Species(DIS);
-    if (with_capri) { N_SPECIES = N_M1 + 3; } // we add these three species CAPRI3, AON5, FUSS
-    else { N_SPECIES = N_M1; }
-  };
-  size_t DIS;
+  // Ecosystem(size_t discrete_level, bool with_capri) : DIS(discrete_level) {
+  //   N_M1 = Mem1Species::N_M1_Species(DIS);
+  //   if (with_capri) { N_SPECIES = N_M1 + 3; } // we add these three species CAPRI3, AON5, FUSS
+  //   else { N_SPECIES = N_M1; }
+  // };
+  Ecosystem(const std::vector<Species> &species_pool) :pool(species_pool), N_SPECIES(species_pool.size()) {};
   size_t N_SPECIES;
-  size_t N_M1;
+  std::vector<Species> pool;
   // calculate the equilibrium distribution exactly by linear algebra
   std::vector<double> CalculateEquilibrium(double benefit, double cost, uint64_t N, double sigma, double e) {
     Eigen::initParallel();
-    std::cerr << "DIS, N_SPECIES, N_M1: " << DIS << ", " << N_SPECIES << ", " << N_M1 << std::endl;
     Eigen::MatrixXd A(N_SPECIES, N_SPECIES);
-    #pragma omp parallel for
-    for (size_t i = 0; i < N_M1; i++) {
-      Species si(i, DIS);
-      for (size_t j = 0; j < N_SPECIES; j++) {
-        if (i == j) { A(i, j) = 0.0; continue; }
-        // calculate the transition probability from j to i
-        Species sj(j, DIS);
-        if (i >= N_M1 || j >= N_M1) { std::cerr << "calculating rho for (" << i << ", " << j << ")" << std::endl; }
-        double p = FixationProb(benefit, cost, N, sigma, e, si, sj);
-        A(i, j) = p * (1.0 / N_SPECIES);
-      }
+    #pragma omp parallel for schedule(dynamic, 4)
+    for (size_t ii = 0; ii < N_SPECIES * N_SPECIES; ii++) {
+      size_t i = ii / N_SPECIES;
+      size_t j = ii % N_SPECIES;
+      if (i == j) { A(i, j) = 0.0; continue; }
+      if (!pool[i].is_m1 || !pool[j].is_m1) { std::cerr << "calculating rho for (" << i << ", " << j << ")" << std::endl; }
+      double p = FixationProb(benefit, cost, N, sigma, e, pool[i], pool[j]);
+      A(i, j) = p * (1.0 / N_SPECIES);
     }
-    for (size_t i = N_M1; i < N_SPECIES; i++) {
-      Species si(i, DIS);
-      #pragma omp parallel for
-      for (size_t j = 0; j < N_SPECIES; j++) {
-        if (i == j) { A(i, j) = 0.0; continue; }
-        // calculate the transition probability from j to i
-        Species sj(j, DIS);
-        if (i >= N_M1 || j >= N_M1) { std::cerr << "calculating rho for (" << i << ", " << j << ")" << std::endl; }
-        double p = FixationProb(benefit, cost, N, sigma, e, si, sj);
-        assert( p >= 0.0 && p <= 1.0 );
-        A(i, j) = p * (1.0 / N_SPECIES);
-      }
-    }
+
     for (size_t j = 0; j < N_SPECIES; j++) {
       double p_sum = 0.0;
       for (size_t i = 0; i < N_SPECIES; i++) {
@@ -377,7 +361,7 @@ class Ecosystem {
     return ans;
   }
 
-  double FixationProb(double benefit, double cost, uint64_t N, double sigma, double e, Species& mutant, Species & resident) {
+  double FixationProb(double benefit, double cost, uint64_t N, double sigma, double e, Species &mutant, Species &resident) {
     // rho_inv = \sum_{i=0}^{N-1} exp(sigma[S]),
     // where S is defined as
     // S =  i/6(i^2−3iN+6i+3N^2−12N+11)s_{yyy}
@@ -423,16 +407,15 @@ class Ecosystem {
     }
     std::ofstream fout(fname);
     for (auto it = sorted_histo.rbegin(); it != sorted_histo.rend(); it++) {
-      fout << Species(it->first, DIS).ToString() << ' ' << it->second << std::endl;
+      fout << pool[it->first].ToString() << ' ' << it->second << std::endl;
     }
     fout.close();
   }
-  double CooperationLevel(const std::vector<double> &eq_rate, double error) const {
+  double CooperationLevel(const std::vector<double> &eq_rate, double error) {
     assert(eq_rate.size() == N_SPECIES);
     double ans = 0.0;
     for (size_t i = 0; i < N_SPECIES; i++) {
-      Species s(i, DIS);
-      double c_lev = s.CooperationLevel(error);
+      double c_lev = pool[i].CooperationLevel(error);
       ans += eq_rate[i] * c_lev;
     }
     return ans;
@@ -455,7 +438,11 @@ int main(int argc, char *argv[]) {
   double e = std::strtod(argv[5], nullptr);
   uint64_t discrete_level = std::strtoull(argv[6], nullptr,0);
 
-  Ecosystem eco(discrete_level, true);
+  std::vector<Species> pool;
+  pool.emplace_back(63, discrete_level);
+  pool.emplace_back(65, discrete_level);
+  // pool.emplace_back(66, discrete_level);
+  Ecosystem eco(pool);
 
 
   std::cerr << "Calculating equilibrium" << std::endl;
