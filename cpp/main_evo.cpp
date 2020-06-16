@@ -151,25 +151,37 @@ class Species { // either Mem1Species or StrategyN3M5
       is_m1 = true;
       m1 = Mem1Species(ID, DIS);
       m5 = StrategyN3M5(std::bitset<StrategyN3M5::N>());
+      name = m1.ToString();
     }
     else if (ID == N_M1) {
       is_m1 = false;
       m1 = Mem1Species(0, DIS);
       m5 = StrategyN3M5::CAPRI3();
+      name = "CAPRI3";
+    }
+    else if (ID == N_M1 + 1) {
+      is_m1 = false;
+      m1 = Mem1Species(0, DIS);
+      m5 = StrategyN3M5::AON5();
+      name = "AON5";
+    }
+    else if (ID == N_M1 + 2) {
+      is_m1 = false;
+      m1 = Mem1Species(0, DIS);
+      m5 = StrategyN3M5::FUSS_m3();
+      name = "FUSS_m3";
     }
     else {
       throw std::runtime_error("must not happen");
     }
   };
-  Species(const Mem1Species &_m1) : is_m1(true), m1(_m1), m5(StrategyN3M5(std::bitset<StrategyN3M5::N>())) {};
-  Species(const StrategyN3M5 &_m5) : is_m1(false), m1(Mem1Species(0, 1)), m5(_m5) {};
+  // Species(const Mem1Species &_m1) : is_m1(true), m1(_m1), m5(StrategyN3M5(std::bitset<StrategyN3M5::N>())) {};
+  // Species(const StrategyN3M5 &_m5) : is_m1(false), m1(Mem1Species(0, 1)), m5(_m5) {};
   bool is_m1;
   Mem1Species m1;
   StrategyN3M5 m5;
-  std::string ToString() const {
-    if (is_m1) { return m1.ToString(); }
-    else { return std::string("CAPRI3"); }
-  }
+  std::string name;
+  std::string ToString() const { return name; }
   double CooperationProb(const StateN3M5 &s) const {
     if (is_m1) { return m1.CooperationProb(s); }
     else { return m5.ActionAt(s) == C ? 1.0 : 0.0; }
@@ -294,7 +306,7 @@ class Ecosystem {
  public:
   Ecosystem(size_t discrete_level, bool with_capri) : DIS(discrete_level) {
     N_M1 = Mem1Species::N_M1_Species(DIS);
-    if (with_capri) { N_SPECIES = N_M1 + 1; }
+    if (with_capri) { N_SPECIES = N_M1 + 3; } // we add these three species CAPRI3, AON5, FUSS
     else { N_SPECIES = N_M1; }
   };
   size_t DIS;
@@ -312,7 +324,7 @@ class Ecosystem {
         if (i == j) { A(i, j) = 0.0; continue; }
         // calculate the transition probability from j to i
         Species sj(j, DIS);
-        if (i == N_M1 || j == N_M1) { std::cerr << "calculating rho for (" << i << ", " << j << ")" << std::endl; }
+        if (i >= N_M1 || j >= N_M1) { std::cerr << "calculating rho for (" << i << ", " << j << ")" << std::endl; }
         double p = FixationProb(benefit, cost, N, sigma, e, si, sj);
         A(i, j) = p * (1.0 / N_SPECIES);
       }
@@ -324,7 +336,7 @@ class Ecosystem {
         if (i == j) { A(i, j) = 0.0; continue; }
         // calculate the transition probability from j to i
         Species sj(j, DIS);
-        if (i == N_M1 || j == N_M1) { std::cerr << "calculating rho for (" << i << ", " << j << ")" << std::endl; }
+        if (i >= N_M1 || j >= N_M1) { std::cerr << "calculating rho for (" << i << ", " << j << ")" << std::endl; }
         double p = FixationProb(benefit, cost, N, sigma, e, si, sj);
         assert( p >= 0.0 && p <= 1.0 );
         A(i, j) = p * (1.0 / N_SPECIES);
