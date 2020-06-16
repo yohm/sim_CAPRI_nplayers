@@ -484,7 +484,8 @@ StrategyN3M5 StrategyN3M5::AON5() {
   for (size_t i = 0; i < N; i++) {
     const size_t mask_a0 = 0b11111ull << 0ul, mask_b0 = 0b11111ull << 5ul, mask_c0 = 0b11111ull << 10ul;
     const size_t ah = i & mask_a0, bh = (i & mask_b0) >> 5ul, ch = (i & mask_c0) >> 10ul;
-    if (ah == bh && ah == ch) { aon5_b.set(i); }
+    if (ah == bh && ah == ch) { aon5_b.reset(i); }
+    else { aon5_b.set(i); }
   }
   return std::move(StrategyN3M5(aon5_b));
 }

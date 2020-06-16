@@ -184,6 +184,35 @@ void test_m3_FUSS() {
   myassert(simp_automaton.size() == 12);
 }
 
+void test_AON5() {
+  StrategyN3M5 aon5 = StrategyN3M5::AON5();
+  std::cerr << aon5 << std::endl;
+
+  const auto simp_automaton = aon5.MinimizeDFA(false).to_map();
+  std::cerr << "autom_size: " << simp_automaton.size() << std::endl;
+  for (const auto &kv: simp_automaton) {
+    std::cerr << kv.first << " => " << kv.second.size() << " [\n  ";
+    for (const auto &x: kv.second) {
+      std::cerr << x << ", ";
+    }
+    std::cerr << "]," << std::endl;
+  }
+  myassert(aon5.IsDefensibleDFA() == false);
+  myassert(aon5.IsEfficient() == true);
+  myassert(aon5.IsEfficientTopo() == true);
+
+  auto stat = aon5.StationaryState(0.00001);
+  myassert(stat[0] > 0.99);
+  std::cerr << "stationary state" << std::endl;
+  for (size_t i = 0; i < stat.size(); i++) {
+    if (stat[i] > 0.05) { std::cerr << StateN3M5(i).ToString() << " : " << stat[i] << std::endl; }
+  }
+
+  myassert(aon5.IsDistinguishable() == true);
+  myassert(aon5.IsDistinguishableTopo() == true);
+}
+
+
 void test_CAPRI3() {
   StrategyN3M5 capri = StrategyN3M5::CAPRI3();
 
@@ -319,21 +348,23 @@ void test_sCAPRI3() {
 int main() {
   std::cout << "Testing StrategyN3M5 class" << std::endl;
 
-  test_State();
-  std::cerr << "Testing AllC" << std::endl;
-  test_AllC();
-  std::cerr << "Testing AllD" << std::endl;
-  test_AllD();
-  std::cerr << "Testing TFT" << std::endl;
-  test_TFT();
-  std::cerr << "Testing WSLS" << std::endl;
-  test_WSLS();
-  std::cerr << "Testing FUSS" << std::endl;
-  test_m3_FUSS();
-  std::cerr << "Testing CAPRI3" << std::endl;
-  test_CAPRI3();
-  std::cerr << "Testing sCAPRI3" << std::endl;
-  test_sCAPRI3();
+  // test_State();
+  // std::cerr << "Testing AllC" << std::endl;
+  // test_AllC();
+  // std::cerr << "Testing AllD" << std::endl;
+  // test_AllD();
+  // std::cerr << "Testing TFT" << std::endl;
+  // test_TFT();
+  // std::cerr << "Testing WSLS" << std::endl;
+  // test_WSLS();
+  // std::cerr << "Testing FUSS" << std::endl;
+  // test_m3_FUSS();
+  std::cerr << "Testing AON5" << std::endl;
+  test_AON5();
+  // std::cerr << "Testing CAPRI3" << std::endl;
+  // test_CAPRI3();
+  // std::cerr << "Testing sCAPRI3" << std::endl;
+  // test_sCAPRI3();
   return 0;
 }
 
