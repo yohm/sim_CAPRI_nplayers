@@ -430,3 +430,75 @@ bool StrategyN2M3::_Equivalent(size_t i, size_t j, UnionFind &uf_0, bool noisy) 
   }
   return true;
 }
+
+Partition StrategyN2M3::MinimizeDFAHopcroft(bool noisy) const {
+  Partition partition(64);
+
+  // initialize partition by the action c/d
+  std::set<size_t> c_set, d_set;
+  for (size_t i = 0; i < 64; i++) {
+    if (actions[i] == C) { c_set.insert(i); }
+    else { d_set.insert(i); }
+  }
+  if (c_set.empty() || d_set.empty()) { return std::move(partition); }
+  partition.split(0, c_set);
+  size_t smaller = (c_set.size() < d_set.size()) ? (*c_set.begin()) : (*d_set.begin());
+
+  std::set<splitter_t> waiting;  // initialize waiting set
+  std::vector<int> inputs = {0, 1};  // 0: c, 1: d, (0: cc, 1: cd, 2: dc, 3: dd)
+  for(int b: inputs) {
+    waiting.insert({smaller, b});
+  }
+
+  while( !waiting.empty() ) {
+    splitter_t splitter = *waiting.cbegin();  // take a splitter from a waiting list
+    waiting.erase(waiting.begin());
+    auto groups = partition.group_ids();
+    for(size_t p: groups) {  // for each P in partition
+      // check if group i is splittable or not
+      auto p1p2 = _SplitBySplitter(partition, p, splitter, noisy);
+      const std::set<size_t> &p1 = p1p2.at(0), &p2 = p1p2.at(1);
+      if (p1.empty() || p2.empty() ) { continue; }  // P is not split by this splitter
+      partition.split(p, p1);
+      for (int b: inputs) {
+        auto found = waiting.find(splitter_t(p, b) );
+        if (found != waiting.end()) {
+          // replace (P, b) by (P1, b) and (P2, b) in W
+          waiting.erase(found);
+          waiting.insert({*p1.cbegin(), b});
+          waiting.insert({*p2.cbegin(), b});
+        }
+        else {
+          if (p1.size() < p2.size()) {
+            waiting.insert({*p1.cbegin(), b});
+          }
+          else {
+            waiting.insert({*p2.cbegin(), b});
+          }
+        }
+      }
+    }
+  }
+  return std::move(partition);
+}
+
+std::array<std::set<size_t>,2> StrategyN2M3::_SplitBySplitter(const Partition &partition, size_t p, const splitter_t & splitter, bool noisy) const {
+  const std::set<size_t> &P = partition.group(p);
+  const std::set<size_t> &Q = partition.group(splitter.first);
+  int b = splitter.second;
+  Action act_b = (b == 0) ? C : D;
+  // get members of P which go to a member of Q by b
+  std::set<size_t> P1;
+  for (size_t si: P) {
+    StateN2M3 s(si);
+    Action act_a = actions[si];
+    size_t next = s.NextState(act_a, act_b).ID();
+    if (Q.find(next) != Q.end()) {
+      P1.insert(si);
+    }
+  }
+  std::set<size_t> P2;
+  std::set_difference(P.begin(), P.end(), P1.begin(), P1.end(), std::inserter(P2, P2.end()));
+  return {P1, P2};
+}
+

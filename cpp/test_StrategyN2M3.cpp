@@ -89,6 +89,10 @@ void test_AllC() {
     myassert(simp_automaton.size() == 1);
     const auto full_automaton = alld.MinimizeDFA(true).to_map();
     myassert(full_automaton.size() == 1);
+
+    const auto simp_a = alld.MinimizeDFAHopcroft(false).to_map();
+    myassert(simp_a.size() == 1);
+
   }
   {
     StrategyN2M3 allc("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
@@ -110,6 +114,9 @@ void test_AllC() {
     myassert(simp_automaton.size() == 1);
     const auto full_automaton = allc.MinimizeDFA(true).to_map();
     myassert(full_automaton.size() == 1);
+
+    const auto simp_a = allc.MinimizeDFAHopcroft(false).to_map();
+    myassert(simp_a.size() == 1);
   }
   {
     StrategyN2M3 tft("cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
@@ -139,6 +146,10 @@ void test_AllC() {
     myassert(full_automaton.size() == 2);
     myassert(full_automaton.at(0).size() == 32);
     myassert(full_automaton.at(1).size() == 32);
+
+    const auto simp_a = tft.MinimizeDFAHopcroft(false).to_map();
+    myassert(simp_a.size() == 2);
+    myassert(simp_automaton == simp_a);
   }
   {
     StrategyN2M3 wsls("cdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdc");
@@ -164,6 +175,9 @@ void test_AllC() {
     myassert(full_automaton.size() == 2);
     myassert(full_automaton.at(0).size() == 32);
     myassert(full_automaton.at(1).size() == 32);
+
+    const auto simp_a = wsls.MinimizeDFAHopcroft(false).to_map();
+    myassert(simp_a.size() == 2);
   }
   {
     StrategyN2M3 tf2t("cccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccd"); // tf2t
@@ -192,6 +206,10 @@ void test_AllC() {
     myassert(full_automaton.at(0).size() == 32);
     myassert(full_automaton.at(1) == std::set<size_t>({1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49, 53, 57, 61}));
     myassert(full_automaton.at(3) == std::set<size_t>({3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43, 47, 51, 55, 59, 63}));
+
+    const auto simp_a = tf2t.MinimizeDFAHopcroft(false).to_map();
+    myassert(simp_a.size() == 3);
+    myassert(simp_automaton == simp_a);
   }
 
   {
@@ -248,6 +266,10 @@ void test_TFTATFT() {
   myassert(full_auto.at(9) == std::set<size_t>({9, 13, 41, 45, 25, 29, 57, 61}));  // ATFT-c
   myassert(full_auto.at(19) == std::set<size_t>({19, 23, 51, 55}));  // TFT-c-2
   myassert(full_auto.at(11) == std::set<size_t>({11, 15, 43, 47, 27, 31, 59, 63}));  // TFT-d-2
+
+  const auto simp_a = tft_atft.MinimizeDFAHopcroft(false).to_map();
+  myassert(simp_a.size() == 4);
+  myassert(simp_automaton == simp_a);
 }
 
 void test_CAPRI() {
@@ -285,6 +307,10 @@ void test_CAPRI() {
   myassert(simp_auto.size() == 7);
   const auto full_auto = capri.MinimizeDFA(true).to_map();
   myassert(full_auto.size() == 14);
+
+  const auto simp_a = capri.MinimizeDFAHopcroft(false).to_map();
+  myassert(simp_a.size() == 7);
+  myassert(simp_auto == simp_a);
 }
 
 void test_CAPRI2() {

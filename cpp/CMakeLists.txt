@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 14)
 
 #set(CMAKE_VERBOSE_MAKEFILE 1)
 
-set(SOURCE_N2M3_FILES Action.cpp Action.hpp StrategyN2M3.cpp StrategyN2M3.hpp DirectedGraph.hpp DirectedGraph.cpp UnionFind.hpp main_evo.cpp)
+set(SOURCE_N2M3_FILES Action.cpp Action.hpp StrategyN2M3.cpp StrategyN2M3.hpp DirectedGraph.hpp DirectedGraph.cpp UnionFind.hpp Partition.hpp)
 include_directories(SYSTEM /usr/local/include/eigen3)
 
 add_executable(test_StrategyN2M3 test_StrategyN2M3.cpp ${SOURCE_N2M3_FILES})
@@ -15,5 +15,5 @@ set(SOURCE_N3M5_FILES Action.cpp Action.hpp StrategyN3M5.cpp StrategyN3M5.hpp Di
 add_executable(test_StrategyN3M5 test_StrategyN3M5.cpp ${SOURCE_N3M5_FILES})
 
 find_package(OpenMP REQUIRED)
-add_executable(main_evo main_evo.cpp ${SOURCE_N3M5_FILES})
+add_executable(main_evo main_evo.cpp ${SOURCE_N3M5_FILES} main_evo.cpp)
 target_link_libraries(main_evo PRIVATE OpenMP::OpenMP_CXX)
