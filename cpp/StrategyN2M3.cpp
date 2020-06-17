@@ -452,11 +452,13 @@ Partition StrategyN2M3::MinimizeDFAHopcroft(bool noisy) const {
 
   while( !waiting.empty() ) {
     splitter_t splitter = *waiting.cbegin();  // take a splitter from a waiting list
+    const std::set<size_t> Q = partition.group(splitter.first);  // copy splitter because this must remain same during this iteration
+    const int b = splitter.second;
     waiting.erase(waiting.begin());
     auto groups = partition.group_ids();
     for(size_t p: groups) {  // for each P in partition
       // check if group i is splittable or not
-      auto p1p2 = _SplitBySplitter(partition, p, splitter, noisy);
+      auto p1p2 = _SplitBySplitter(partition, p, Q, b, noisy);
       const std::set<size_t> &p1 = p1p2.at(0), &p2 = p1p2.at(1);
       if (p1.empty() || p2.empty() ) { continue; }  // P is not split by this splitter
       partition.split(p, p1);
@@ -482,10 +484,8 @@ Partition StrategyN2M3::MinimizeDFAHopcroft(bool noisy) const {
   return std::move(partition);
 }
 
-std::array<std::set<size_t>,2> StrategyN2M3::_SplitBySplitter(const Partition &partition, size_t p, const splitter_t & splitter, bool noisy) const {
+std::array<std::set<size_t>,2> StrategyN2M3::_SplitBySplitter(const Partition &partition, size_t p, const std::set<size_t> &Q, int b, bool noisy) const {
   const std::set<size_t> &P = partition.group(p);
-  const std::set<size_t> &Q = partition.group(splitter.first);
-  int b = splitter.second;
   Action act_b = (b == 0) ? C : D;
   // get members of P which go to a member of Q by b
   std::set<size_t> P1;

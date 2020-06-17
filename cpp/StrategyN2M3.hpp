@@ -139,7 +139,7 @@ class StrategyN2M3 {
   std::vector<StateN2M3> NextPossibleStates(StateN2M3 current) const;
   bool _Equivalent(size_t i, size_t j, UnionFind &uf_0, bool noisy) const;
   typedef std::pair<size_t, int> splitter_t;
-  std::array<std::set<size_t>,2> _SplitBySplitter(const Partition &partition, size_t org, const splitter_t & splitter, bool noisy) const;
+  std::array<std::set<size_t>,2> _SplitBySplitter(const Partition &partition, size_t org, const std::set<size_t> &Q, int b, bool noisy) const;
 };
 
 #endif //STRATEGY_N2M3_HPP

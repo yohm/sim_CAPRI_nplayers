@@ -314,7 +314,6 @@ void test_CAPRI() {
 }
 
 void test_CAPRI2() {
-  StrategyN2M3 capri("cdddcdddcdcddddddcddcdddddddddddcdcdcdcdddddddddddddcdccddddddcd");
   // action table of CAPRI-2
   typedef std::bitset<6> B;
   auto capri2_action_at = [](size_t i)->Action {
@@ -383,6 +382,7 @@ void test_CAPRI2() {
   std::cerr << capri2 << std::endl;
 
   std::cerr << "difference of CAPRI-2 from CAPRI" << std::endl;
+  StrategyN2M3 capri("cdddcdddcdcddddddcddcdddddddddddcdcdcdcdddddddddddddcdccddddddcd");
   for (size_t i = 0; i < N; i++) {
     if (capri.ActionAt(i) != capri2.ActionAt(i)) {
       std::cerr << StateN2M3(i) << " | " << capri2.ActionAt(i) << " : " << capri.ActionAt(i) << std::endl;
@@ -395,6 +395,13 @@ void test_CAPRI2() {
   myassert(capri2.IsDefensibleDFA());
   myassert(capri2.IsDistinguishable());
   myassert(capri2.IsDistinguishableTopo());
+
+  const auto simp_auto = capri2.MinimizeDFA(false).to_map();
+  myassert(simp_auto.size() == 10);
+
+  const auto simp_a = capri2.MinimizeDFAHopcroft(false).to_map();
+  myassert(simp_a.size() == 10);
+  myassert(simp_auto == simp_a);
 }
 
 void test_sCAPRI2() {
@@ -469,6 +476,11 @@ void test_sCAPRI2() {
   myassert(scapri2.IsDefensibleDFA());
   myassert(scapri2.IsDistinguishable() == false);
   myassert(scapri2.IsDistinguishableTopo() == false);
+
+  const auto simp_auto = scapri2.MinimizeDFA(false).to_map();
+  const auto simp_a = scapri2.MinimizeDFAHopcroft(false).to_map();
+  myassert(simp_auto.size() == 7);
+  myassert(simp_auto == simp_a);
 }
 
 void test_EfficiencyDefensible() {
@@ -478,6 +490,9 @@ void test_EfficiencyDefensible() {
   myassert(s1.IsDefensibleDFA());
   // auto stat = s1.StationaryState(0.0001);
   // for(int i=0; i<64; i++) { myassert(stat[i] < 0.01); }
+  const auto simp_auto = s1.MinimizeDFA(false).to_map();
+  const auto simp_a = s1.MinimizeDFAHopcroft(false).to_map();
+  myassert(simp_auto == simp_a);
 }
 
 int main() {
