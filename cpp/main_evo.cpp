@@ -254,6 +254,7 @@ class Species { // either Mem1Species or StrategyN3M5
       std::vector<double> ss;
       if (this == &sb && this == &sc) {
         assert(!_ss_cache.empty() && error == _error_cached);
+        std::cerr << "Using cache..." << std::endl;
         ss = _ss_cache;
       }
       else {
@@ -275,13 +276,14 @@ class Species { // either Mem1Species or StrategyN3M5
       std::vector<double> ss;
       if (this == &sb && this == &sc) {
         assert(!_ss_cache.empty() && error == _error_cached);
+        std::cerr << "Using cache..." << std::endl;
         ss = _ss_cache;
       }
       else {
         ss = StationaryState(sb, sc, error);
       }
       assert(ss.size() == StrategyN3M5::N);
-      for (size_t i = 0; i < ss.size(); i++) {
+      for (size_t i = 0; i < StrategyN3M5::N; i++) {
         StateN3M5 s(i);
         size_t num_c = 0;
         double cost_A = 0.0, cost_B = 0.0, cost_C = 0.0;
@@ -468,9 +470,9 @@ int main(int argc, char *argv[]) {
   // for (size_t i = 0; i < 64; i++) {
   //   pool.emplace_back(i, discrete_level);
   // }
-  pool.emplace_back(64, discrete_level);
+  // pool.emplace_back(64, discrete_level);
   pool.emplace_back(65, discrete_level);
-  // pool.emplace_back(66, discrete_level);
+  pool.emplace_back(66, discrete_level);
   Ecosystem eco(pool, e);
 
 
