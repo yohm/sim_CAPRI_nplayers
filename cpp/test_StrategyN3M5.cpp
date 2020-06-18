@@ -69,14 +69,17 @@ void test_AllC() {
   myassert(allc.IsEfficientTopo());
   myassert(allc.IsEfficient());
 
-  UnionFind uf = allc.MinimizeDFA(false);
-  myassert(uf.to_map().size() == 1);
+  auto simp_auto = allc.MinimizeDFAHopcroft(false);
+  myassert(simp_auto.size() == 1);
+  auto full_auto = allc.MinimizeDFAHopcroft(true);
+  myassert(full_auto.size() == 1);
+
   myassert(allc.IsDefensibleDFA() == false);
 }
 
 
 void test_AllD() {
-  StrategyN3M5 alld = StrategyN3M5::AllD();
+  const StrategyN3M5 alld = StrategyN3M5::AllD();
 
   myassert(alld.IsDefensibleDFA() == true);
   myassert(alld.IsEfficientTopo() == false);
@@ -91,14 +94,14 @@ void test_AllD() {
   myassert(alld.IsDistinguishable() == true);
   myassert(alld.IsDistinguishableTopo() == true);
 
-  const auto simp_automaton = alld.MinimizeDFA(false).to_map();
+  const auto simp_automaton = alld.MinimizeDFAHopcroft(false).to_map();
   myassert(simp_automaton.size() == 1);
-  const auto full_automaton = alld.MinimizeDFA(true).to_map();
+  const auto full_automaton = alld.MinimizeDFAHopcroft(true).to_map();
   myassert(full_automaton.size() == 1);
 }
 
 void test_TFT() {
-  StrategyN3M5 tft = StrategyN3M5::TFT();
+  const StrategyN3M5 tft = StrategyN3M5::TFT();
   myassert(tft.IsDefensibleDFA() == true);
   myassert(tft.IsEfficient() == false);
   myassert(tft.IsEfficientTopo() == false);
@@ -120,18 +123,18 @@ void test_TFT() {
   myassert(tft.IsDistinguishable() == false);
   myassert(tft.IsDistinguishableTopo() == false);
 
-  const auto simp_automaton = tft.MinimizeDFA(false).to_map();
+  const auto simp_automaton = tft.MinimizeDFAHopcroft(false).to_map();
   myassert(simp_automaton.size() == 2);
   myassert(simp_automaton.at(0).size() == 8192);
   myassert(simp_automaton.at(32).size() == 32768-8192);
-  const auto full_automaton = tft.MinimizeDFA(true).to_map();
+  const auto full_automaton = tft.MinimizeDFAHopcroft(true).to_map();
   myassert(full_automaton.size() == 2);
   myassert(full_automaton.at(0).size() == 8192);
   myassert(full_automaton.at(32).size() == 32768-8192);
 }
 
 void test_WSLS() {
-  StrategyN3M5 wsls = StrategyN3M5::WSLS();
+  const StrategyN3M5 wsls = StrategyN3M5::WSLS();
   myassert(wsls.IsDefensibleDFA() == false);
   myassert(wsls.IsEfficient() == true);
   myassert(wsls.IsEfficientTopo() == true);
@@ -144,11 +147,11 @@ void test_WSLS() {
   myassert(wsls.IsDistinguishable() == true);
   myassert(wsls.IsDistinguishableTopo() == true);
 
-  const auto simp_automaton = wsls.MinimizeDFA(false).to_map();
+  const auto simp_automaton = wsls.MinimizeDFAHopcroft(false).to_map();
   myassert(simp_automaton.size() == 2);
   myassert(simp_automaton.at(0).size() == 8192);
   myassert(simp_automaton.at(1).size() == 32768-8192);
-  const auto full_automaton = wsls.MinimizeDFA(true).to_map();
+  const auto full_automaton = wsls.MinimizeDFAHopcroft(true).to_map();
   myassert(full_automaton.size() == 2);
   myassert(full_automaton.at(0).size() == 8192);
   myassert(full_automaton.at(1).size() == 32768-8192);
@@ -156,17 +159,15 @@ void test_WSLS() {
 
 
 void test_m3_FUSS() {
-  StrategyN3M5 fuss = StrategyN3M5::FUSS_m3();
+  const StrategyN3M5 fuss = StrategyN3M5::FUSS_m3();
 
-  const auto simp_automaton = fuss.MinimizeDFA(false).to_map();
-  std::cerr << "autom_size: " << simp_automaton.size() << std::endl;
-  for (const auto &kv: simp_automaton) {
-    std::cerr << kv.first << " => " << kv.second.size() << " [\n  ";
-    for (const auto &x: kv.second) {
-      std::cerr << x << ", ";
-    }
-    std::cerr << "]," << std::endl;
-  }
+  const auto simp_automaton = fuss.MinimizeDFAHopcroft(false);
+  myassert(simp_automaton.size() == 12);
+  // myassert(simp_automaton.to_map() == fuss.MinimizeDFA(false).to_map());
+
+  const auto full_automaton = fuss.MinimizeDFAHopcroft(true);
+  myassert(full_automaton.size() == 26);
+
   myassert(fuss.IsDefensibleDFA() == true);
   myassert(fuss.IsEfficient() == true);
   myassert(fuss.IsEfficientTopo() == true);
@@ -180,23 +181,18 @@ void test_m3_FUSS() {
 
   myassert(fuss.IsDistinguishable() == true);
   myassert(fuss.IsDistinguishableTopo() == true);
-
-  myassert(simp_automaton.size() == 12);
 }
 
 void test_AON5() {
-  StrategyN3M5 aon5 = StrategyN3M5::AON5();
+  const StrategyN3M5 aon5 = StrategyN3M5::AON5();
   std::cerr << aon5 << std::endl;
 
-  const auto simp_automaton = aon5.MinimizeDFA(false).to_map();
-  std::cerr << "autom_size: " << simp_automaton.size() << std::endl;
-  for (const auto &kv: simp_automaton) {
-    std::cerr << kv.first << " => " << kv.second.size() << " [\n  ";
-    for (const auto &x: kv.second) {
-      std::cerr << x << ", ";
-    }
-    std::cerr << "]," << std::endl;
-  }
+  const auto simp_automaton = aon5.MinimizeDFAHopcroft(false);
+  std::cerr << "simplified automaton: " << simp_automaton << std::endl;
+  myassert(simp_automaton.size() == 6 );
+  const auto full_a = aon5.MinimizeDFAHopcroft(true).to_map();
+  myassert(full_a.size() == 6);
+
   myassert(aon5.IsDefensibleDFA() == false);
   myassert(aon5.IsEfficient() == true);
   myassert(aon5.IsEfficientTopo() == true);
@@ -214,7 +210,7 @@ void test_AON5() {
 
 
 void test_CAPRI3() {
-  StrategyN3M5 capri = StrategyN3M5::CAPRI3();
+  const StrategyN3M5 capri = StrategyN3M5::CAPRI3();
 
   {
     uint64_t i = StateN3M5("cdccc_dcccc_ccccc").ID();
@@ -239,20 +235,16 @@ void test_CAPRI3() {
   myassert(capri.IsEfficient() == true);
   myassert(capri.IsEfficientTopo() == true);
 
+  myassert(capri.IsDefensibleDFA() == true);
+
   myassert(capri.IsDistinguishable());
   myassert(capri.IsDistinguishableTopo());
 
-  const auto simp_automaton = capri.MinimizeDFA(false).to_map();
-  std::cerr << "autom_size: " << simp_automaton.size() << std::endl;
-  for (const auto &kv: simp_automaton) {
-    std::cerr << kv.first << " => " << kv.second.size() << " [\n  ";
-    for (const auto &x: kv.second) {
-      std::cerr << x << ", ";
-    }
-    std::cerr << "]," << std::endl;
-  }
-  myassert(capri.IsDefensibleDFA() == true);
+  const auto simp_automaton = capri.MinimizeDFAHopcroft(false);
+  myassert(simp_automaton.size() == 193);
 
+  const auto full_automaton = capri.MinimizeDFAHopcroft(true);
+  myassert(full_automaton.size() == 1209);
 }
 
 void test_sCAPRI3() {
@@ -333,38 +325,35 @@ void test_sCAPRI3() {
   myassert(scapri.IsDistinguishable() == false);
   myassert(scapri.IsDistinguishableTopo() == false);
 
-  const auto simp_automaton = scapri.MinimizeDFA(false).to_map();
-  std::cerr << "autom_size: " << simp_automaton.size() << std::endl;
-  for (const auto &kv: simp_automaton) {
-    std::cerr << kv.first << " => " << kv.second.size() << " [\n  ";
-    for (const auto &x: kv.second) {
-      std::cerr << x << ", ";
-    }
-    std::cerr << "]," << std::endl;
-  }
   myassert(scapri.IsDefensibleDFA() == true);
+
+  const auto simp_automaton = scapri.MinimizeDFAHopcroft(false);
+  std::cerr << "simp_automaton: " << simp_automaton.size() << std::endl;
+  myassert(simp_automaton.size() == 49);
+  const auto full_automaton = scapri.MinimizeDFAHopcroft(false);
+  myassert(full_automaton.size() == 49);
 }
 
 int main() {
   std::cout << "Testing StrategyN3M5 class" << std::endl;
 
-  // test_State();
-  // std::cerr << "Testing AllC" << std::endl;
-  // test_AllC();
-  // std::cerr << "Testing AllD" << std::endl;
-  // test_AllD();
-  // std::cerr << "Testing TFT" << std::endl;
-  // test_TFT();
-  // std::cerr << "Testing WSLS" << std::endl;
-  // test_WSLS();
-  // std::cerr << "Testing FUSS" << std::endl;
-  // test_m3_FUSS();
+  test_State();
+  std::cerr << "Testing AllC" << std::endl;
+  test_AllC();
+  std::cerr << "Testing AllD" << std::endl;
+  test_AllD();
+  std::cerr << "Testing TFT" << std::endl;
+  test_TFT();
+  std::cerr << "Testing WSLS" << std::endl;
+  test_WSLS();
+  std::cerr << "Testing FUSS" << std::endl;
+  test_m3_FUSS();
   std::cerr << "Testing AON5" << std::endl;
   test_AON5();
-  // std::cerr << "Testing CAPRI3" << std::endl;
-  // test_CAPRI3();
-  // std::cerr << "Testing sCAPRI3" << std::endl;
-  // test_sCAPRI3();
+  std::cerr << "Testing CAPRI3" << std::endl;
+  test_CAPRI3();
+  std::cerr << "Testing sCAPRI3" << std::endl;
+  test_sCAPRI3();
   return 0;
 }
 
