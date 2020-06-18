@@ -6,7 +6,7 @@
 
 const size_t StrategyN3M5::N;
 
-StrategyN3M5::StrategyN3M5(const std::bitset<N> &acts) : actions(acts), min_auto_cache{UnionFind(0), UnionFind(0)} {
+StrategyN3M5::StrategyN3M5(const std::bitset<N> &acts) : actions(acts) {
 }
 
 std::string StrategyN3M5::ToString() const {
@@ -68,8 +68,8 @@ bool StrategyN3M5::IsDefensible() const {
   return true;
 }
 
-bool StrategyN3M5::IsDefensibleDFA() {
-  const auto autom = MinimizeDFA(false).to_map();
+bool StrategyN3M5::IsDefensibleDFA() const {
+  const auto autom = MinimizeDFAHopcroft(false).to_map();
   std::vector<std::set<size_t> > groups;
   groups.reserve(autom.size());
   for (const auto &kv : autom) { groups.emplace_back(kv.second); }
@@ -149,7 +149,7 @@ std::array<uint64_t , StrategyN3M5::N> StrategyN3M5::DestsOfITG() const {
   return dests;
 }
 
-std::vector<uint64_t> StrategyN3M5::TraceStates(uint64_t start, const StrategyN3M5 *B, const StrategyN3M5 *C) {
+std::vector<uint64_t> StrategyN3M5::TraceStates(uint64_t start, const StrategyN3M5 *B, const StrategyN3M5 *C) const {
   std::vector<uint64_t> trace;
 
   if (B == nullptr) { B = this; }
@@ -301,7 +301,7 @@ bool StrategyN3M5::IsEfficientTopo() const {
       UpdateGn(gn);
     }
     for (int i = 1; i < N; i++) {
-      if(i%1000 == 0) {std::cerr << "checking efficiency (n,i) : " << n << ", " << i << std::endl;}
+      if(i%10000 == 0) {std::cerr << "checking efficiency (n,i) : " << n << ", " << i << std::endl;}
       if (checked[i] == 1) { continue; }
       if (gn.Reachable(i, 0)) {
         if (gn.Reachable(0, i)) {
@@ -375,11 +375,7 @@ bool StrategyN3M5::IsDistinguishableTopo() const {
   return false;
 }
 
-UnionFind StrategyN3M5::MinimizeDFA(bool noisy) {
-  // check cache
-  if (!noisy && min_auto_cache[0].org_size() > 0) { return min_auto_cache[0]; }
-  if ( noisy && min_auto_cache[1].org_size() > 0) { return min_auto_cache[1]; }
-
+UnionFind StrategyN3M5::MinimizeDFA(bool noisy) const {
   UnionFind uf_0(N);
   // initialize grouping by the action c/d
   long c_rep = -1, d_rep = -1;
@@ -422,8 +418,6 @@ UnionFind StrategyN3M5::MinimizeDFA(bool noisy) {
     uf_0 = uf;
   }
 
-  if (!noisy) { min_auto_cache[0] = uf_0; }
-  if (noisy)  { min_auto_cache[1] = uf_0; }
   return uf_0;
 }
 
@@ -447,6 +441,81 @@ bool StrategyN3M5::_Equivalent(size_t i, size_t j, UnionFind &uf_0, bool noisy) 
   }
   return true;
 }
+
+Partition StrategyN3M5::MinimizeDFAHopcroft(bool noisy) const {
+  Partition partition(StrategyN3M5::N);
+
+  // initialize partition by the action c/d
+  std::set<size_t> c_set, d_set;
+  for (size_t i = 0; i < StrategyN3M5::N; i++) {
+    if (actions[i] == C) { c_set.insert(i); }
+    else { d_set.insert(i); }
+  }
+  if (c_set.empty() || d_set.empty()) { return std::move(partition); }
+  partition.split(0, c_set);
+  size_t smaller = (c_set.size() < d_set.size()) ? (*c_set.begin()) : (*d_set.begin());
+
+  std::set<splitter_t> waiting;  // initialize waiting set
+  int input_size = 4;  // 0: cc, 1: cd, 2: dc, 3: dd
+  if (noisy) { input_size = 8; } // 0: ccc, 1: ccd, 2: cdc, 3: cdd, 4: dcc, 5: dcd, 6: ddc, 7: ddd
+  for(int b = 0; b < input_size; b++) {
+    waiting.insert({smaller, b});
+  }
+
+  while( !waiting.empty() ) {
+    splitter_t splitter = *waiting.cbegin();  // take a splitter from a waiting list
+    const std::set<size_t> Q = partition.group(splitter.first);  // copy splitter because this must remain same during this iteration
+    const int b = splitter.second;
+    waiting.erase(waiting.begin());
+    auto groups = partition.group_ids();
+    for(size_t p: groups) {  // for each P in partition
+      // check if group i is splittable or not
+      auto p1p2 = _SplitBySplitter(partition, p, Q, b, noisy);
+      const std::set<size_t> &p1 = p1p2.at(0), &p2 = p1p2.at(1);
+      if (p1.empty() || p2.empty() ) { continue; }  // P is not split by this splitter
+      partition.split(p, p1);
+      for (int b = 0; b < input_size; b++) {
+        auto found = waiting.find(splitter_t(p, b) );
+        if (found != waiting.end()) {
+          // replace (P, b) by (P1, b) and (P2, b) in W
+          waiting.erase(found);
+          waiting.insert({*p1.cbegin(), b});
+          waiting.insert({*p2.cbegin(), b});
+        }
+        else {
+          if (p1.size() < p2.size()) {
+            waiting.insert({*p1.cbegin(), b});
+          }
+          else {
+            waiting.insert({*p2.cbegin(), b});
+          }
+        }
+      }
+    }
+  }
+  return std::move(partition);
+}
+
+std::array<std::set<size_t>,2> StrategyN3M5::_SplitBySplitter(const Partition &partition, size_t p, const std::set<size_t> &Q, int b, bool noisy) const {
+  const std::set<size_t> &P = partition.group(p);
+  Action act_c = (b & 1) ? D : C;
+  Action act_b = (b & 2) ? D : C;
+  // get members of P which go to a member of Q by b
+  std::set<size_t> P1;
+  for (size_t si: P) {
+    StateN3M5 s(si);
+    Action act_a = ActionAt(s);
+    if (noisy) { act_a = (b & 4) ? D : C; }
+    size_t next = s.NextState(act_a, act_b, act_c).ID();
+    if (Q.find(next) != Q.end()) {
+      P1.insert(si);
+    }
+  }
+  std::set<size_t> P2;
+  std::set_difference(P.begin(), P.end(), P1.begin(), P1.end(), std::inserter(P2, P2.end()));
+  return {P1, P2};
+}
+
 
 StrategyN3M5 StrategyN3M5::AllC() {
   std::bitset<N> allc_b(0ull);

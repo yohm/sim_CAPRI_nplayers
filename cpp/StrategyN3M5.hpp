@@ -14,6 +14,7 @@
 #include "Action.hpp"
 #include "UnionFind.hpp"
 #include "DirectedGraph.hpp"
+#include "Partition.hpp"
 
 #ifndef STRATEGY_N3M5_HPP
 #define STRATEGY_N3M5_HPP
@@ -161,7 +162,7 @@ class StrategyN3M5 {
 
   Action ActionAt(const StateN3M5 &s) const { return actions[s.ID()] ? D : C; }
   bool IsDefensible() const;  // check defensibility. Not computationally feasible.
-  bool IsDefensibleDFA(); // check defensibility using DFA minimization
+  bool IsDefensibleDFA() const; // check defensibility using DFA minimization
   // get stationary state. When coplayer is nullptr, it is set to self
   std::array<double, N> StationaryState(double e = 0.0001, const StrategyN3M5 *B = nullptr, const StrategyN3M5 *C = nullptr) const;
   // std::array<double, N> StationaryState2(double e = 0.0001, const StrategyN3M5 *B = nullptr, const StrategyN3M5 *C = nullptr) const;
@@ -176,8 +177,9 @@ class StrategyN3M5 {
   DirectedGraph ITG() const;  // construct g(S,S).
   std::array<uint64_t , StrategyN3M5::N> DestsOfITG() const; // Trace g(S,S) from node i. Destination is stored in i'th element.
   uint64_t NextITGState(const StateN3M5 &s) const; // Trace the intra-transition graph by one step
-  std::vector<uint64_t> TraceStates(uint64_t start, const StrategyN3M5 *B = nullptr, const StrategyN3M5 *C = nullptr);
-  UnionFind MinimizeDFA(bool noisy = false);
+  std::vector<uint64_t> TraceStates(uint64_t start, const StrategyN3M5 *B = nullptr, const StrategyN3M5 *C = nullptr) const;
+  UnionFind MinimizeDFA(bool noisy = false) const; // DFA minimization using brute-force method. Computationally demanding
+  Partition MinimizeDFAHopcroft(bool noisy = false) const;
 
   static StrategyN3M5 AllC();
   static StrategyN3M5 AllD();
@@ -188,9 +190,10 @@ class StrategyN3M5 {
   static StrategyN3M5 CAPRI3();
  private:
   std::bitset<N> actions;
-  UnionFind min_auto_cache[2];  // cache of simplified and full automaton
   std::vector<StateN3M5> NextPossibleStates(StateN3M5 current) const;
   bool _Equivalent(size_t i, size_t j, UnionFind &uf_0, bool noisy) const;
+  typedef std::pair<size_t, int> splitter_t;
+  std::array<std::set<size_t>,2> _SplitBySplitter(const Partition &partition, size_t org, const std::set<size_t> &Q, int b, bool noisy) const;
 };
 
 
