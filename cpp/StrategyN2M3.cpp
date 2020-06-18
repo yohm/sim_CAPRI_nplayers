@@ -446,6 +446,7 @@ Partition StrategyN2M3::MinimizeDFAHopcroft(bool noisy) const {
 
   std::set<splitter_t> waiting;  // initialize waiting set
   std::vector<int> inputs = {0, 1};  // 0: c, 1: d, (0: cc, 1: cd, 2: dc, 3: dd)
+  if (noisy) { inputs.push_back(2); inputs.push_back(3); }
   for(int b: inputs) {
     waiting.insert({smaller, b});
   }
@@ -486,12 +487,13 @@ Partition StrategyN2M3::MinimizeDFAHopcroft(bool noisy) const {
 
 std::array<std::set<size_t>,2> StrategyN2M3::_SplitBySplitter(const Partition &partition, size_t p, const std::set<size_t> &Q, int b, bool noisy) const {
   const std::set<size_t> &P = partition.group(p);
-  Action act_b = (b == 0) ? C : D;
+  Action act_b = (b & 1) ? D : C;
   // get members of P which go to a member of Q by b
   std::set<size_t> P1;
   for (size_t si: P) {
     StateN2M3 s(si);
     Action act_a = actions[si];
+    if (noisy) { act_a = (b & 2) ? D : C; }
     size_t next = s.NextState(act_a, act_b).ID();
     if (Q.find(next) != Q.end()) {
       P1.insert(si);

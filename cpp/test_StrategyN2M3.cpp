@@ -92,6 +92,8 @@ void test_AllC() {
 
     const auto simp_a = alld.MinimizeDFAHopcroft(false).to_map();
     myassert(simp_a.size() == 1);
+    const auto full_a = alld.MinimizeDFAHopcroft(true).to_map();
+    myassert(full_a.size() == 1);
 
   }
   {
@@ -117,6 +119,8 @@ void test_AllC() {
 
     const auto simp_a = allc.MinimizeDFAHopcroft(false).to_map();
     myassert(simp_a.size() == 1);
+    const auto full_a = allc.MinimizeDFAHopcroft(true).to_map();
+    myassert(full_a.size() == 1);
   }
   {
     StrategyN2M3 tft("cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
@@ -150,6 +154,8 @@ void test_AllC() {
     const auto simp_a = tft.MinimizeDFAHopcroft(false).to_map();
     myassert(simp_a.size() == 2);
     myassert(simp_automaton == simp_a);
+    const auto full_a = tft.MinimizeDFAHopcroft(true).to_map();
+    myassert(full_automaton == full_a);
   }
   {
     StrategyN2M3 wsls("cdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdc");
@@ -178,6 +184,8 @@ void test_AllC() {
 
     const auto simp_a = wsls.MinimizeDFAHopcroft(false).to_map();
     myassert(simp_a.size() == 2);
+    const auto full_a = wsls.MinimizeDFAHopcroft(true).to_map();
+    myassert(full_automaton == full_a);
   }
   {
     StrategyN2M3 tf2t("cccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccd"); // tf2t
@@ -210,6 +218,8 @@ void test_AllC() {
     const auto simp_a = tf2t.MinimizeDFAHopcroft(false).to_map();
     myassert(simp_a.size() == 3);
     myassert(simp_automaton == simp_a);
+    const auto full_a = tf2t.MinimizeDFAHopcroft(true).to_map();
+    myassert(full_automaton == full_a);
   }
 
   {
@@ -270,6 +280,8 @@ void test_TFTATFT() {
   const auto simp_a = tft_atft.MinimizeDFAHopcroft(false).to_map();
   myassert(simp_a.size() == 4);
   myassert(simp_automaton == simp_a);
+  const auto full_a = tft_atft.MinimizeDFAHopcroft(true).to_map();
+  myassert(full_auto == full_a);
 }
 
 void test_CAPRI() {
@@ -311,6 +323,8 @@ void test_CAPRI() {
   const auto simp_a = capri.MinimizeDFAHopcroft(false).to_map();
   myassert(simp_a.size() == 7);
   myassert(simp_auto == simp_a);
+  const auto full_a = capri.MinimizeDFAHopcroft(true).to_map();
+  myassert(full_auto == full_a);
 }
 
 void test_CAPRI2() {
@@ -398,10 +412,14 @@ void test_CAPRI2() {
 
   const auto simp_auto = capri2.MinimizeDFA(false).to_map();
   myassert(simp_auto.size() == 10);
+  const auto full_auto = capri2.MinimizeDFA(true).to_map();
+  myassert(full_auto.size() == 16);
 
   const auto simp_a = capri2.MinimizeDFAHopcroft(false).to_map();
   myassert(simp_a.size() == 10);
   myassert(simp_auto == simp_a);
+  const auto full_a = capri2.MinimizeDFAHopcroft(true).to_map();
+  myassert(full_auto == full_a);
 }
 
 void test_sCAPRI2() {
@@ -481,6 +499,11 @@ void test_sCAPRI2() {
   const auto simp_a = scapri2.MinimizeDFAHopcroft(false).to_map();
   myassert(simp_auto.size() == 7);
   myassert(simp_auto == simp_a);
+
+  const auto full_auto = scapri2.MinimizeDFA(true).to_map();
+  myassert(full_auto.size() == 10);
+  const auto full_a = scapri2.MinimizeDFAHopcroft(true).to_map();
+  myassert(full_auto == full_a);
 }
 
 void test_EfficiencyDefensible() {
@@ -493,6 +516,9 @@ void test_EfficiencyDefensible() {
   const auto simp_auto = s1.MinimizeDFA(false).to_map();
   const auto simp_a = s1.MinimizeDFAHopcroft(false).to_map();
   myassert(simp_auto == simp_a);
+  const auto full_auto = s1.MinimizeDFA(true).to_map();
+  const auto full_a = s1.MinimizeDFAHopcroft(true).to_map();
+  myassert(full_auto == full_a);
 }
 
 int main() {
