@@ -155,8 +155,8 @@ class Species { // either Mem1Species or StrategyN3M5
     else if (ID == N_M1 + 1) {
       is_m1 = false;
       m1 = Mem1Species(0, DIS);
-      m5 = StrategyN3M5::AON5();
-      name = "AON5";
+      m5 = StrategyN3M5::AON(3);
+      name = "AON3";
     }
     else if (ID == N_M1 + 2) {
       is_m1 = false;
@@ -188,6 +188,7 @@ class Species { // either Mem1Species or StrategyN3M5
     }
     else {
       _ss_cache = StationaryState(*this, *this, error);
+      std::cerr << "StatonaryState[0] for " << ToString() << " is " << _ss_cache[0] << std::endl;
       assert(_ss_cache.size() == StrategyN3M5::N);
     }
   }
@@ -350,6 +351,7 @@ class Ecosystem {
       if (i == j) { A(i, j) = 0.0; continue; }
       if (!pool[i].is_m1 || !pool[j].is_m1) { std::cerr << "calculating rho for (" << i << ", " << j << ")" << std::endl; }
       double p = FixationProb(benefit, cost, N, sigma, pool[i], pool[j]);
+      std::cerr << "Fixation prob of mutant (mutant,resident): " << p << " (" << pool[i].ToString() << ", " << pool[j].ToString() << ")" << std::endl;
       A(i, j) = p * (1.0 / N_SPECIES);
     }
 
@@ -397,6 +399,7 @@ class Ecosystem {
     //     −i/6(i^2−3i(N−1)+3N^2−6N+2)s_{xyy}
     //     +i/6(i−1)(2i−3N+2))s_{xxy}
     //     −i/6(i^2−3i+2)s_{xxx}
+    std::cerr << "caclulating fixation prob for mutant " << mutant.ToString() << " against resident " << resident.ToString() << std::endl;
 
     const auto xxx = mutant.Payoffs(mutant, mutant, benefit, cost, e);
     const double s_xxx = xxx[0];
@@ -408,6 +411,8 @@ class Ecosystem {
     const double s_yyy = yyy[0];
     const double s_yyx = xyy[2];
     const double s_yxx = xxy[2];
+    std::cerr << "s_xxx: " << s_xxx << ", s_xxy: " << s_xxy << ", s_xyy: " << s_xyy << std::endl;
+    std::cerr << "s_yyy: " << s_yyy << ", s_yxx: " << s_yxx << ", s_yyx: " << s_yyx << std::endl;
 
     double rho_inv = 0.0;
     for (int i=0; i < N; i++) {
@@ -466,13 +471,26 @@ int main(int argc, char *argv[]) {
   double e = std::strtod(argv[5], nullptr);
   uint64_t discrete_level = std::strtoull(argv[6], nullptr,0);
 
+  /*
+  Species aon(65, 1);
+  Species capri3(64, 1);
+  auto ss = aon.StationaryState(aon, capri3, e);
+  for (size_t i = 0; i < ss.size(); i++) {
+    if (ss.at(i) > 0.05) {
+      std::cerr << StateN3M5(i).ToString() << " : " << ss.at(i) << std::endl;
+    }
+  }
+  return 0;
+   */
+
+
   std::vector<Species> pool;
   // for (size_t i = 0; i < 64; i++) {
   //   pool.emplace_back(i, discrete_level);
   // }
-  // pool.emplace_back(64, discrete_level);
+  pool.emplace_back(64, discrete_level);
   pool.emplace_back(65, discrete_level);
-  pool.emplace_back(66, discrete_level);
+  // pool.emplace_back(66, discrete_level);
   Ecosystem eco(pool, e);
 
 
