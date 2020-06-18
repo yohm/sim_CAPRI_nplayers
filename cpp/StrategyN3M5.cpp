@@ -548,15 +548,19 @@ StrategyN3M5 StrategyN3M5::WSLS() {
   return std::move(StrategyN3M5(wsls_b));
 }
 
-StrategyN3M5 StrategyN3M5::AON5() {
-  std::bitset<N> aon5_b;
+StrategyN3M5 StrategyN3M5::AON(size_t m) {
+  if (m > 5) { throw std::runtime_error("m must be 5 or less"); }
+  std::bitset<N> aon_b;
+  std::bitset<15> mask = 0;
+  for (size_t i = 0; i < m; i++) { mask.set(i); }  // 0b11...1
   for (size_t i = 0; i < N; i++) {
-    const size_t mask_a0 = 0b11111ull << 0ul, mask_b0 = 0b11111ull << 5ul, mask_c0 = 0b11111ull << 10ul;
-    const size_t ah = i & mask_a0, bh = (i & mask_b0) >> 5ul, ch = (i & mask_c0) >> 10ul;
-    if (ah == bh && ah == ch) { aon5_b.reset(i); }
-    else { aon5_b.set(i); }
+    std::bitset<15> I(i);
+    const std::bitset<15> mask_a0 = mask << 0ul, mask_b0 = mask << 5ul, mask_c0 = mask << 10ul;
+    const std::bitset<15> ah = I & mask_a0, bh = (I & mask_b0) >> 5ul, ch = (I & mask_c0) >> 10ul;
+    if (ah == bh && ah == ch) { aon_b.reset(i); }
+    else { aon_b.set(i); }
   }
-  return std::move(StrategyN3M5(aon5_b));
+  return std::move(StrategyN3M5(aon_b));
 }
 
 StrategyN3M5 StrategyN3M5::CAPRI3() {

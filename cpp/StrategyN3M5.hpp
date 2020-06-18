@@ -185,7 +185,7 @@ class StrategyN3M5 {
   static StrategyN3M5 AllD();
   static StrategyN3M5 TFT();
   static StrategyN3M5 WSLS();
-  static StrategyN3M5 AON5();
+  static StrategyN3M5 AON(size_t m);
   static StrategyN3M5 FUSS_m3();
   static StrategyN3M5 CAPRI3();
  private:

@@ -184,7 +184,7 @@ void test_m3_FUSS() {
 }
 
 void test_AON5() {
-  const StrategyN3M5 aon5 = StrategyN3M5::AON5();
+  const StrategyN3M5 aon5 = StrategyN3M5::AON(5);
   std::cerr << aon5 << std::endl;
 
   const auto simp_automaton = aon5.MinimizeDFAHopcroft(false);
