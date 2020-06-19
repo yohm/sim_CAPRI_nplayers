@@ -322,6 +322,25 @@ class Species { // either Mem1Species or StrategyN3M5
       return level;
     }
   }
+  static std::vector<Species> Memory1Species(size_t discrete_level) {
+    std::vector<Species> ans;
+    size_t n = Mem1Species::N_M1_Species(discrete_level);
+    for (size_t i = 0; i < n; i++) {
+      ans.emplace_back(i, discrete_level);
+    }
+    return std::move(ans);
+  }
+  static std::vector<Species> ReactiveMem1Species(size_t discrete_level) {
+    std::vector<Species> ans;
+    size_t B = discrete_level + 1;
+    size_t n = Mem1Species::N_M1_Species(discrete_level);
+    size_t B3 = B * B * B;
+    for (size_t i = 0; i < n/B3; i++) {
+      size_t id = i * B3 + i;
+      ans.emplace_back(id, discrete_level);
+    }
+    return std::move(ans);
+  }
 };
 
 
@@ -484,12 +503,13 @@ int main(int argc, char *argv[]) {
    */
 
 
-  std::vector<Species> pool;
+  std::vector<Species> pool = Species::ReactiveMem1Species(discrete_level);
+  // std::vector<Species> pool = Species::Memory1Species(discrete_level);
   // for (size_t i = 0; i < 64; i++) {
   //   pool.emplace_back(i, discrete_level);
   // }
   pool.emplace_back(64, discrete_level);
-  pool.emplace_back(65, discrete_level);
+  // pool.emplace_back(65, discrete_level);
   // pool.emplace_back(66, discrete_level);
   Ecosystem eco(pool, e);
 
