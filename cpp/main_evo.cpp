@@ -334,14 +334,13 @@ class Ecosystem {
   // calculate the equilibrium distribution exactly by linear algebra
   std::vector<double> CalculateEquilibrium(double benefit, double cost, uint64_t N, double sigma) const {
     Eigen::MatrixXd A(N_SPECIES, N_SPECIES);
-    #pragma omp parallel for schedule(dynamic, 1)
+    #pragma omp parallel for
     for (size_t ii = 0; ii < N_SPECIES * N_SPECIES; ii++) {
       size_t i = ii / N_SPECIES;
       size_t j = ii % N_SPECIES;
       if (i == j) { A(i, j) = 0.0; continue; }
-      if (!pool[i].is_m1 || !pool[j].is_m1) { std::cerr << "calculating rho for (" << i << ", " << j << ")" << std::endl; }
       double p = FixationProb(benefit, cost, N, sigma, i, j);
-      std::cerr << "Fixation prob of mutant (mutant,resident): " << p << " (" << pool[i].ToString() << ", " << pool[j].ToString() << ")" << std::endl;
+      // std::cerr << "Fixation prob of mutant (mutant,resident): " << p << " (" << pool[i].ToString() << ", " << pool[j].ToString() << ")" << std::endl;
       A(i, j) = p * (1.0 / N_SPECIES);
     }
 
@@ -403,9 +402,10 @@ class Ecosystem {
     std::cerr << "s_xxx: " << s_xxx << ", s_xxy: " << s_xxy << ", s_xyy: " << s_xyy << std::endl;
     std::cerr << "s_yyy: " << s_yyy << ", s_yxx: " << s_yxx << ", s_yyx: " << s_yyx << std::endl;
 
+    double num_games = (N-1) * (N-2) / 2.0;
     double rho_inv = 0.0;
     for (int i=0; i < N; i++) {
-      double x = sigma * (i / 6.0) * (
+      double x = sigma / num_games * (i / 6.0) * (
           (i*i - 3.0*i*N + 6.0*i + 3.0*N*N - 12.0*N + 11.0) * s_yyy
           - (i+1.0) * (2.0*i - 3.0*N + 4) * s_yyx
           + (i-1.0) * (i+1.0) * s_yxx
@@ -471,15 +471,14 @@ int main(int argc, char *argv[]) {
   Eigen::initParallel();
   if( argc != 7 ) {
     std::cerr << "Error : invalid argument" << std::endl;
-    std::cerr << "  Usage : " << argv[0] << " <benefit> <cost> <N> <N_sigma> <error rate> <discrete_level>" << std::endl;
+    std::cerr << "  Usage : " << argv[0] << " <benefit> <cost> <N> <sigma> <error rate> <discrete_level>" << std::endl;
     return 1;
   }
 
   double benefit = std::strtod(argv[1], nullptr);
   double cost = std::strtod(argv[2], nullptr);
   uint64_t N = std::strtoull(argv[3], nullptr,0);
-  double N_sigma = std::strtod(argv[4], nullptr);
-  double sigma = N_sigma / N;
+  double sigma = std::strtod(argv[4], nullptr);
   double e = std::strtod(argv[5], nullptr);
   uint64_t discrete_level = std::strtoull(argv[6], nullptr,0);
 
