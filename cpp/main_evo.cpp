@@ -469,18 +469,17 @@ class Ecosystem {
 
 int main(int argc, char *argv[]) {
   Eigen::initParallel();
-  if( argc != 7 ) {
+  if( argc != 5 ) {
     std::cerr << "Error : invalid argument" << std::endl;
-    std::cerr << "  Usage : " << argv[0] << " <benefit> <cost> <N> <sigma> <error rate> <discrete_level>" << std::endl;
+    std::cerr << "  Usage : " << argv[0] << " <Nmax> <sigma> <error rate> <discrete_level>" << std::endl;
     return 1;
   }
 
-  double benefit = std::strtod(argv[1], nullptr);
-  double cost = std::strtod(argv[2], nullptr);
-  uint64_t N = std::strtoull(argv[3], nullptr,0);
-  double sigma = std::strtod(argv[4], nullptr);
-  double e = std::strtod(argv[5], nullptr);
-  uint64_t discrete_level = std::strtoull(argv[6], nullptr,0);
+  double cost = 1.0;
+  uint64_t Nmax = std::strtoull(argv[1], nullptr,0);
+  double sigma = std::strtod(argv[2], nullptr);
+  double e = std::strtod(argv[3], nullptr);
+  uint64_t discrete_level = std::strtoull(argv[4], nullptr,0);
 
   /*
   Species aon(65, 1);
@@ -505,14 +504,26 @@ int main(int argc, char *argv[]) {
   // pool.emplace_back(66, discrete_level);
   Ecosystem eco(pool, e);
 
+  auto SweepOverBeta = [&eco,cost,sigma](size_t N) {
+    char fname1[100], fname2[100];
+    sprintf(fname1, "abundance_%zu.dat", N);
+    std::ofstream eqout(fname1);
+    sprintf(fname2, "cooperation_level_%zu.dat", N);
+    std::ofstream coout(fname2);
+    for (int i = 5; i < 200; i+=5) {
+      double benefit = 1.0 + i / 100.0;
+      auto eq = eco.CalculateEquilibrium(benefit, cost, N, sigma);
+      eqout << benefit << ' ';
+      for (double x: eq) { eqout << x << ' '; }
+      eqout << std::endl;
+      double c_lev = eco.CooperationLevel(eq);
+      coout << benefit << ' ' << c_lev << std::endl;
+    }
+  };
 
-  std::cerr << "Calculating equilibrium" << std::endl;
-  auto eq = eco.CalculateEquilibrium(benefit, cost, N, sigma);
-  eco.PrintAbundance(eq, "equilibrium.dat");
-  double c_lev = eco.CooperationLevel(eq);
-  std::ofstream jout("_output.json");
-  jout << "{ \"cooperation_level\": " << c_lev << " }" << std::endl;
-  jout.close();
+  for (int N = 3; N <= Nmax; N++) {
+    SweepOverBeta(N);
+  }
 
   return 0;
 }
