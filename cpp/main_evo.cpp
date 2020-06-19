@@ -167,32 +167,16 @@ class Species { // either Mem1Species or StrategyN3M5
     else {
       throw std::runtime_error("must not happen");
     }
-    _error_cached = -1.0;
   };
   bool is_m1;
   Mem1Species m1;
   StrategyN3M5 m5;
   std::string name;
-  std::vector<double> _ss_cache;
-  double _error_cached;
   std::string ToString() const { return name; }
-  double CooperationProb(const StateN3M5 &s) const {
-    if (is_m1) { return m1.CooperationProb(s); }
-    else { return m5.ActionAt(s) == C ? 1.0 : 0.0; }
-  }
-  void CalculateStationaryStateCache(double error) {
-    _error_cached = error;
-    if (is_m1) {
-      _ss_cache = m1.StationaryState(m1, m1, error);
-      assert(_ss_cache.size() == 8);
-    }
-    else {
-      _ss_cache = StationaryState(*this, *this, error);
-      std::cerr << "StatonaryState[0] for " << ToString() << " is " << _ss_cache[0] << std::endl;
-      assert(_ss_cache.size() == StrategyN3M5::N);
-    }
-  }
   std::vector<double> StationaryState(const Species &sb, const Species &sc, double error) const {
+    if (is_m1 && sb.is_m1 && sc.is_m1) {
+      return m1.StationaryState(sb.m1, sc.m1, error);
+    }
     std::cerr << "calculating stationary state" << std::endl;
 
     typedef Eigen::Triplet<double> T;
@@ -201,9 +185,9 @@ class Species { // either Mem1Species or StrategyN3M5
     for (size_t j = 0; j < StrategyN3M5::N; j++) {
       // calculate transition probability from j to i
       const StateN3M5 sj(j);
-      double c_a = CooperationProb(sj);
-      double c_b = sb.CooperationProb(sj.StateFromB());
-      double c_c = sc.CooperationProb(sj.StateFromC());
+      double c_a = _CooperationProb(sj);
+      double c_b = sb._CooperationProb(sj.StateFromB());
+      double c_c = sc._CooperationProb(sj.StateFromC());
       // cooperation probability taking noise into account
       c_a = (1.0 - error) * c_a + error * (1.0 - c_a);
       c_b = (1.0 - error) * c_b + error * (1.0 - c_b);
@@ -248,80 +232,13 @@ class Species { // either Mem1Species or StrategyN3M5
     for (int i = 0; i < S; i++) { ans[i] = x[i]; }
     return ans;
   }
-
-  std::array<double,3> Payoffs(const Species &sb, const Species &sc, double benefit, double cost, double error) const {
-    std::array<double, 3> ans = {0.0, 0.0, 0.0};
-    if (is_m1 && sb.is_m1 && sc.is_m1) {
-      std::vector<double> ss;
-      if (this == &sb && this == &sc) {
-        assert(!_ss_cache.empty() && error == _error_cached);
-        std::cerr << "Using cache..." << std::endl;
-        ss = _ss_cache;
-      }
-      else {
-        ss = m1.StationaryState(sb.m1, sc.m1, error);
-      }
-      assert(ss.size() == 8);
-      for (size_t i = 0; i < 8; i++) {
-        size_t num_c = 0;
-        double cost_A = 0.0, cost_B = 0.0, cost_C = 0.0;
-        if ((i & 1ul) == 0) { num_c += 1; cost_A += cost; }
-        if ((i & 2ul) == 0) { num_c += 1; cost_B += cost; }
-        if ((i & 4ul) == 0) { num_c += 1; cost_C += cost; }
-        ans[0] += ss[i] * (num_c * benefit - cost_A);
-        ans[1] += ss[i] * (num_c * benefit - cost_B);
-        ans[2] += ss[i] * (num_c * benefit - cost_C);
-      };
-    }
-    else {
-      std::vector<double> ss;
-      if (this == &sb && this == &sc) {
-        assert(!_ss_cache.empty() && error == _error_cached);
-        std::cerr << "Using cache..." << std::endl;
-        ss = _ss_cache;
-      }
-      else {
-        ss = StationaryState(sb, sc, error);
-      }
-      assert(ss.size() == StrategyN3M5::N);
-      for (size_t i = 0; i < StrategyN3M5::N; i++) {
-        StateN3M5 s(i);
-        size_t num_c = 0;
-        double cost_A = 0.0, cost_B = 0.0, cost_C = 0.0;
-        if (!s.ha[0]) { num_c += 1; cost_A += cost; }
-        if (!s.hb[0]) { num_c += 1; cost_B += cost; }
-        if (!s.hc[0]) { num_c += 1; cost_C += cost; }
-        ans[0] += ss[i] * (num_c * benefit - cost_A);
-        ans[1] += ss[i] * (num_c * benefit - cost_B);
-        ans[2] += ss[i] * (num_c * benefit - cost_C);
-      }
-    }
-    return ans;
+ private:
+  double _CooperationProb(const StateN3M5 &s) const {
+    if (is_m1) { return m1.CooperationProb(s); }
+    else { return m5.ActionAt(s) == C ? 1.0 : 0.0; }
   }
 
-  double CooperationLevel(double error) const {
-    assert(!_ss_cache.empty() && _error_cached == error);
-    if (is_m1) {
-      double level = 0.0;
-      for (size_t i = 0; i < 8; i++) {
-        size_t num_c = 3 - std::bitset<3>(i).count();
-        level += _ss_cache[i] * (num_c / 3.0);
-      };
-      return level;
-    }
-    else {
-      double level = 0.0;
-      for (size_t i = 0; i < StrategyN3M5::N; i++) {
-        StateN3M5 s(i);
-        size_t num_c = 3ul;
-        if (s.ha[0]) num_c -= 1;
-        if (s.hb[0]) num_c -= 1;
-        if (s.hc[0]) num_c -= 1;
-        level += _ss_cache[i] * (num_c / 3.0);
-      }
-      return level;
-    }
-  }
+ public:
   static std::vector<Species> Memory1Species(size_t discrete_level) {
     std::vector<Species> ans;
     size_t n = Mem1Species::N_M1_Species(discrete_level);
@@ -352,14 +269,68 @@ class Ecosystem {
   //   else { N_SPECIES = N_M1; }
   // };
   Ecosystem(const std::vector<Species> &species_pool, double error) :pool(species_pool), N_SPECIES(species_pool.size()), e(error) {
-#pragma omp parallel for schedule(dynamic, 1)
-    for (size_t i = 0; i < pool.size(); i++) {
-      pool[i].CalculateStationaryStateCache(error);
-    }
+    CalculateSSCache();
   };
   size_t N_SPECIES;
   std::vector<Species> pool;
-  double e;
+  const double e;
+  typedef std::vector<double> ss_cache_t;
+  std::vector<std::vector<ss_cache_t> > ss_cache;
+  // ss_cache[i][i] stores the stationary state when PG game is played by (i,i,i)
+  // ss_cache[i][j] stores the stationary state when PG game is played by (i,i,j)
+
+  void CalculateSSCache() {
+    ss_cache.resize(N_SPECIES);
+    for (size_t i = 0; i < N_SPECIES; i++) {
+      ss_cache[i].resize(N_SPECIES);
+    }
+
+#pragma omp parallel for schedule(dynamic,1)
+    for (size_t I=0; I < N_SPECIES * N_SPECIES; I++) {
+      size_t i = I / N_SPECIES;
+      size_t j = I % N_SPECIES;
+      ss_cache[i][j] = pool[i].StationaryState(pool[i], pool[j], e);
+    }
+  }
+
+  // payoff of species i and j when the game is played by (i,i,j)
+  std::array<double,2> PayoffVersus(size_t i, size_t j, double benefit, double cost) const {
+    std::array<double, 3> ans = Payoffs(ss_cache[i][j], benefit, cost);
+    assert(ans[0] == ans[1]);
+    return {ans[0], ans[2]};
+  }
+
+  std::array<double,3> Payoffs(const ss_cache_t &ss, double benefit, double cost) const {
+    std::array<double, 3> ans = {0.0, 0.0, 0.0};
+    if (ss.size() == 8) {
+      for (size_t i = 0; i < 8; i++) {
+        size_t num_c = 0;
+        double cost_A = 0.0, cost_B = 0.0, cost_C = 0.0;
+        if ((i & 1ul) == 0) { num_c += 1; cost_A += cost; }
+        if ((i & 2ul) == 0) { num_c += 1; cost_B += cost; }
+        if ((i & 4ul) == 0) { num_c += 1; cost_C += cost; }
+        ans[0] += ss[i] * (num_c * benefit - cost_A);
+        ans[1] += ss[i] * (num_c * benefit - cost_B);
+        ans[2] += ss[i] * (num_c * benefit - cost_C);
+      };
+    }
+    else {
+      assert(ss.size() == StrategyN3M5::N);
+      for (size_t i = 0; i < StrategyN3M5::N; i++) {
+        StateN3M5 s(i);
+        size_t num_c = 0;
+        double cost_A = 0.0, cost_B = 0.0, cost_C = 0.0;
+        if (!s.ha[0]) { num_c += 1; cost_A += cost; }
+        if (!s.hb[0]) { num_c += 1; cost_B += cost; }
+        if (!s.hc[0]) { num_c += 1; cost_C += cost; }
+        ans[0] += ss[i] * (num_c * benefit - cost_A);
+        ans[1] += ss[i] * (num_c * benefit - cost_B);
+        ans[2] += ss[i] * (num_c * benefit - cost_C);
+      }
+    }
+    return ans;
+  }
+
   // calculate the equilibrium distribution exactly by linear algebra
   std::vector<double> CalculateEquilibrium(double benefit, double cost, uint64_t N, double sigma) const {
     Eigen::MatrixXd A(N_SPECIES, N_SPECIES);
@@ -369,7 +340,7 @@ class Ecosystem {
       size_t j = ii % N_SPECIES;
       if (i == j) { A(i, j) = 0.0; continue; }
       if (!pool[i].is_m1 || !pool[j].is_m1) { std::cerr << "calculating rho for (" << i << ", " << j << ")" << std::endl; }
-      double p = FixationProb(benefit, cost, N, sigma, pool[i], pool[j]);
+      double p = FixationProb(benefit, cost, N, sigma, i, j);
       std::cerr << "Fixation prob of mutant (mutant,resident): " << p << " (" << pool[i].ToString() << ", " << pool[j].ToString() << ")" << std::endl;
       A(i, j) = p * (1.0 / N_SPECIES);
     }
@@ -409,7 +380,7 @@ class Ecosystem {
     return ans;
   }
 
-  double FixationProb(double benefit, double cost, uint64_t N, double sigma, const Species &mutant, const Species &resident) const {
+  double FixationProb(double benefit, double cost, uint64_t N, double sigma, size_t mutant_idx, size_t resident_idx) const {
     // rho_inv = \sum_{i=0}^{N-1} exp(sigma[S]),
     // where S is defined as
     // S =  i/6(i^2−3iN+6i+3N^2−12N+11)s_{yyy}
@@ -418,18 +389,17 @@ class Ecosystem {
     //     −i/6(i^2−3i(N−1)+3N^2−6N+2)s_{xyy}
     //     +i/6(i−1)(2i−3N+2))s_{xxy}
     //     −i/6(i^2−3i+2)s_{xxx}
-    std::cerr << "caclulating fixation prob for mutant " << mutant.ToString() << " against resident " << resident.ToString() << std::endl;
+    std::cerr << "caclulating fixation prob for mutant " << pool[mutant_idx].ToString() << " against resident " << pool[resident_idx].ToString() << std::endl;
 
-    const auto xxx = mutant.Payoffs(mutant, mutant, benefit, cost, e);
-    const double s_xxx = xxx[0];
-    const auto xxy = mutant.Payoffs(mutant, resident, benefit, cost, e);
-    const double s_xxy = xxy[0];
-    const auto xyy = mutant.Payoffs(resident, resident, benefit, cost, e);
-    const double s_xyy = xyy[0];
-    const auto yyy = resident.Payoffs(resident, resident, benefit, cost, e);
-    const double s_yyy = yyy[0];
-    const double s_yyx = xyy[2];
-    const double s_yxx = xxy[2];
+    double s_xxx = PayoffVersus(mutant_idx, mutant_idx, benefit, cost)[0];
+    double s_yyy = PayoffVersus(resident_idx, resident_idx, benefit, cost)[0];
+    auto xxy = PayoffVersus(mutant_idx, resident_idx, benefit, cost);
+    double s_xxy = xxy[0];
+    double s_yxx = xxy[1];
+    auto yyx = PayoffVersus(resident_idx, mutant_idx, benefit, cost);
+    double s_yyx = yyx[0];
+    double s_xyy = yyx[1];
+
     std::cerr << "s_xxx: " << s_xxx << ", s_xxy: " << s_xxy << ", s_xyy: " << s_xyy << std::endl;
     std::cerr << "s_yyy: " << s_yyy << ", s_yxx: " << s_yxx << ", s_yyx: " << s_yyx << std::endl;
 
@@ -462,11 +432,34 @@ class Ecosystem {
     }
     fout.close();
   }
+  double CooperationLevelSpecies(size_t i) const {
+    const ss_cache_t &ss = ss_cache[i][i];
+    if (ss.size() == 8) {
+      double level = 0.0;
+      for (size_t s = 0; s < 8; s++) {
+        size_t num_c = 3 - std::bitset<3>(s).count();
+        level += ss[s] * (num_c / 3.0);
+      };
+      return level;
+    }
+    else {
+      double level = 0.0;
+      for (size_t s = 0; s < StrategyN3M5::N; s++) {
+        StateN3M5 state(s);
+        size_t num_c = 3ul;
+        if (state.ha[0]) num_c -= 1;
+        if (state.hb[0]) num_c -= 1;
+        if (state.hc[0]) num_c -= 1;
+        level += ss[s] * (num_c / 3.0);
+      }
+      return level;
+    }
+  }
   double CooperationLevel(const std::vector<double> &eq_rate) const {
     assert(eq_rate.size() == N_SPECIES);
     double ans = 0.0;
     for (size_t i = 0; i < N_SPECIES; i++) {
-      double c_lev = pool[i].CooperationLevel(e);
+      double c_lev = CooperationLevelSpecies(i);
       ans += eq_rate[i] * c_lev;
     }
     return ans;
