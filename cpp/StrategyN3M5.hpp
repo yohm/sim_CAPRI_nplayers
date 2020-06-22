@@ -189,6 +189,7 @@ class StrategyN3M5 {
   static StrategyN3M5 AON(size_t m);
   static StrategyN3M5 FUSS_m3();
   static StrategyN3M5 CAPRI3();
+  static StrategyN3M5 sCAPRI3();
  private:
   std::bitset<N> actions;
   std::vector<StateN3M5> NextPossibleStates(StateN3M5 current) const;
