@@ -663,12 +663,10 @@ StrategyN3M5 StrategyN3M5::CAPRI3() {
       size_t pa = (I & mask & a_mask).count();
       size_t pb = (I & mask & b_mask).count();
       size_t pc = (I & mask & c_mask).count();
-      size_t p_max = std::max( std::max(pa, pb), pc);
-      size_t p_min = std::min( std::min(pa, pb), pc);
-      if (pa >= pb && pa >= pc && (p_max - p_min < 2)) {
+      if (pa >= pb && pa >= pc && pa < pb + 2 && pa < pc + 2) {
         return C;
       }
-        // P: Punish by *D* if any of your relative payoffs is negative.
+      // P: Punish by *D* if any of your relative payoffs is negative.
       else {
         return D;
       }
