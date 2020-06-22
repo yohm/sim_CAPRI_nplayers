@@ -172,6 +172,7 @@ class StrategyN3M5 {
   bool IsDistinguishable(double e = 0.00001, double th = 0.95) const {
     const StrategyN3M5 allc(std::bitset<N>(0ull));
     return (StationaryState(e, &allc, &allc)[0] < th);
+    // return (StationaryState(e, this, &allc)[0] < th);
   };  // check distinguishability against AllC
   bool IsDistinguishableTopo() const; // check distinguishability using the transition graph
   DirectedGraph ITG() const;  // construct g(S,S).
