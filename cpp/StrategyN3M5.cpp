@@ -563,127 +563,75 @@ StrategyN3M5 StrategyN3M5::AON(size_t m) {
   return std::move(StrategyN3M5(aon_b));
 }
 
-StrategyN3M5 StrategyN3M5::sCAPRI3() {
+Action caprin_action_at(size_t i, bool is_scapri) {
   typedef std::bitset<15> B;
-  auto scapri_action_at = [](size_t i)->Action {
-    const B I(i);
-    std::string s = I.to_string('c', 'D');
-    std::reverse(s.begin(), s.end());
-    const std::string Istr = s.substr(0,5) + '-' + s.substr(5,5) + '-' + s.substr(10,5);
+  const B I(i);
+  std::string s = I.to_string('c', 'D');
+  std::reverse(s.begin(), s.end());
+  const std::string Istr = s.substr(0,5) + '-' + s.substr(5,5) + '-' + s.substr(10,5);
 
-    const B latest = 0b00001'00001'00001ul;
-    const B latest2 = (latest << 1ul) | latest;
-    const B a_mask = 0b00000'00000'11111ul;
-    const B b_mask = a_mask << 5ul, c_mask = a_mask << 10ul;
-    const size_t na = (I & a_mask).count(), nb = (I & b_mask).count(), nc = (I & c_mask).count();
+  const B latest = 0b00001'00001'00001ul;
+  const B latest2 = (latest << 1ul) | latest;
+  const B a_mask = 0b00000'00000'11111ul;
+  const B b_mask = a_mask << 5ul, c_mask = a_mask << 10ul;
+  const size_t na = (I & a_mask).count(), nb = (I & b_mask).count(), nc = (I & c_mask).count();
 
-    size_t last_ccc = 5;
-    for (size_t t = 0; t < 5; t++) {
-      if ((I & (latest<<t)) == B(0ul)) {  // CCC is found at t step before
-        last_ccc = t;
-        break;
-      }
+  // E: exploit the others if the payoff difference is n or greater
+  if (!is_scapri) {
+    const size_t largest = std::max(std::max(na, nb), nc);
+    const size_t smallest = std::min(std::min(na, nb), nc);
+    if (largest - smallest >= 3) { return D; }
+  }
+
+  size_t last_ccc = 5;
+  for (size_t t = 0; t < 5; t++) {
+    if ((I & (latest<<t)) == B(0ul)) {  // CCC is found at t step before
+      last_ccc = t;
+      break;
     }
+  }
 
-    // C: cooperate if the mutual cooperation is formed at last round
-    if (last_ccc == 0ul) {
+  // C: cooperate if the mutual cooperation is formed at last round
+  if (last_ccc == 0ul) {
+    return C;
+  }
+  else if (last_ccc > 0 && last_ccc < 5) {
+    B mask = latest;
+    for (size_t t = 0; t < last_ccc; t++) { mask = ((mask << 1ul) | latest); }
+    // A: Accept punishment by prescribing *C* if all your relative payoffs are at least zero.
+    size_t pa = (I & mask & a_mask).count();
+    size_t pb = (I & mask & b_mask).count();
+    size_t pc = (I & mask & c_mask).count();
+    if (pa >= pb && pa >= pc) {
       return C;
     }
-    else if (last_ccc > 0 && last_ccc < 5) {
-      B mask = latest;
-      for (size_t t = 0; t < last_ccc; t++) { mask = ((mask << 1ul) | latest); }
-      // A: Accept punishment by prescribing *C* if all your relative payoffs are at least zero.
-      size_t pa = (I & mask & a_mask).count();
-      size_t pb = (I & mask & b_mask).count();
-      size_t pc = (I & mask & c_mask).count();
-      if (pa >= pb && pa >= pc) {
-        return C;
-      }
-        // P: Punish by *D* if any of your relative payoffs is negative.
-      else {
-        return D;
-      }
+      // P: Punish by *D* if any of your relative payoffs is negative.
+    else {
+      return D;
     }
+  }
 
-    // R: grab the chance to recover
-    if (I == 0b11111'11110'11110 || I == 0b11110'11111'11110 || I == 0b11110'11110'11111) {
-      // R: If payoff profile is (+1,+1,-1), prescribe *C*.
-      return C;
-    }
-    // In all other cases, *D*
-    return D;
-  };
+  // R: grab the chance to recover
+  if (I == 0b11111'11110'11110 || I == 0b11110'11111'11110 || I == 0b11110'11110'11111) {
+    // R: If payoff profile is (+1,+1,-1), prescribe *C*.
+    return C;
+  }
+  // In all other cases, *D*
+  return D;
+}
 
+StrategyN3M5 StrategyN3M5::sCAPRI3() {
   std::bitset<N> scapri3_b;
   for (size_t i = 0; i < N; i++) {
-    if (scapri_action_at(i) == D) { scapri3_b.set(i); }
+    if (caprin_action_at(i, true) == D) { scapri3_b.set(i); }
   }
   return std::move(StrategyN3M5(scapri3_b));
-
 }
 
 StrategyN3M5 StrategyN3M5::CAPRI3() {
-  typedef std::bitset<15> B;
-  auto capri_action_at = [](size_t i)->Action {
-    const B I(i);
-    std::string s = I.to_string('c', 'D');
-    std::reverse(s.begin(), s.end());
-    const std::string Istr = s.substr(0,5) + '-' + s.substr(5,5) + '-' + s.substr(10,5);
-
-    const B oldest = 0b10000'10000'10000ul, latest = 0b00001'00001'00001ul;
-    const B latest2 = (latest << 1ul) | latest;
-    const B a_mask = 0b00000'00000'11111ul;
-    const B b_mask = a_mask << 5ul, c_mask = a_mask << 10ul;
-    const size_t na = (I & a_mask).count(), nb = (I & b_mask).count(), nc = (I & c_mask).count();
-
-    size_t last_ccc = 5;
-    for (size_t t = 0; t < 5; t++) {
-      if ((I & (latest<<t)) == B(0ul)) {  // CCC is found at t step before
-        last_ccc = t;
-        break;
-      }
-    }
-
-    // C: cooperate if the mutual cooperation is formed at last round
-    //    && the payoff difference among players is less than n-1
-    if (last_ccc == 0) {
-      size_t pa = (I & a_mask).count();
-      size_t pb = (I & b_mask).count();
-      size_t pc = (I & c_mask).count();
-      size_t p_max = std::max( std::max(pa, pb), pc);
-      size_t p_min = std::min( std::min(pa, pb), pc);
-      if (p_max - p_min < 2) { return C; }
-      else { return D; }
-    }
-    else if (last_ccc > 0 && last_ccc < 5) {
-      B mask = latest;
-      for (size_t t = 0; t < last_ccc; t++) { mask = ((mask << 1ul) | latest); }
-      // A: Accept punishment by prescribing *C* if all your relative payoffs are at least zero.
-      //    AND the payoff difference among players are less than n-1
-      size_t pa = (I & mask & a_mask).count();
-      size_t pb = (I & mask & b_mask).count();
-      size_t pc = (I & mask & c_mask).count();
-      if (pa >= pb && pa >= pc && pa < pb + 2 && pa < pc + 2) {
-        return C;
-      }
-      // P: Punish by *D* if any of your relative payoffs is negative.
-      else {
-        return D;
-      }
-    }
-
-    // R: grab the chance to recover
-    if (I == 0b11111'11110'11110 || I == 0b11110'11111'11110 || I == 0b11110'11110'11111) {
-      // R: If payoff profile is (+1,+1,-1), prescribe *C*.
-      return C;
-    }
-    // In all other cases, *D*
-    return D;
-  };
-
   std::bitset<N> capri3_b;
   for (size_t i = 0; i < N; i++) {
-    if (capri_action_at(i) == D) { capri3_b.set(i); }
+    if (caprin_action_at(i, false) == D) { capri3_b.set(i); }
   }
   return std::move(StrategyN3M5(capri3_b));
 }

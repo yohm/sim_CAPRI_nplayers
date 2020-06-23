@@ -242,11 +242,11 @@ void test_CAPRI3() {
 
   const auto simp_automaton = capri.MinimizeDFAHopcroft(false);
   std::cerr << "simp_automaton: " << simp_automaton.size() << std::endl;
-  myassert(simp_automaton.size() == 196);
+  myassert(simp_automaton.size() == 379);
 
   const auto full_automaton = capri.MinimizeDFAHopcroft(true);
   std::cerr << "full_automaton: " << full_automaton.size() << std::endl;
-  myassert(full_automaton.size() == 1455);
+  myassert(full_automaton.size() == 1446);
 }
 
 void test_sCAPRI3() {

@@ -327,72 +327,70 @@ void test_CAPRI() {
   myassert(full_auto == full_a);
 }
 
+Action CAPRIn_action_at(size_t i, bool s_capri) {
+  typedef std::bitset<6> B;
+  const B I(i);
+  std::string s = I.to_string('c', 'D');
+  std::reverse(s.begin(), s.end());
+  const std::string Istr = s.substr(0,3) + '-' + s.substr(3,3);
+
+  const B oldest = 0b100'100ul, latest = 0b001'001ul;
+  // In this implementation, upper/lower bits correspond to A/B, respectively
+  const B a_mask = 0b111'000ul;
+  const B b_mask = 0b000'111ul;
+  const size_t na = (I & a_mask).count(), nb = (I & b_mask).count();
+
+  // E: Exploit others if payoff difference is n or greater
+  if (!s_capri) {
+    int d = std::max(na, nb) - std::min(na, nb);
+    if (d >= 2) { return D; }
+  }
+
+  size_t last_ccc = 3;
+  for (size_t t = 0; t < 3; t++) {
+    if ((I & (latest<<t)) == B(0ul)) {  // CCC is found at t step before
+      last_ccc = t;
+      break;
+    }
+  }
+
+  // C: cooperate if the mutual cooperation is formed at last two rounds
+  if ((I & latest) == 0ul) {
+    return C;
+  }
+  else if (last_ccc > 0 && last_ccc < 3) {
+    B mask = latest;
+    for (size_t t = 0; t < last_ccc; t++) { mask = ((mask << 1ul) | latest); }
+    // A: Accept punishment by prescribing *C* if all your relative payoffs are at least zero.
+    size_t pa = (I & mask & a_mask).count();
+    size_t pb = (I & mask & b_mask).count();
+    if (pa >= pb) {
+      return C;
+    }
+      // P: Punish by *D* if any of your relative payoffs is negative.
+    else {
+      return D;
+    }
+  }
+  // R: grab the chance to recover
+  if (I == 0b111'110 || I == 0b110'111) {
+    // R: If payoff profile is (+1,+1,-1), prescribe *C*.
+    return C;
+  }
+  // In all other cases, *D*
+  return D;
+
+}
+
 void test_CAPRI2() {
   // action table of CAPRI-2
-  typedef std::bitset<6> B;
-  auto capri2_action_at = [](size_t i)->Action {
-    const B I(i);
-    std::string s = I.to_string('c', 'D');
-    std::reverse(s.begin(), s.end());
-    const std::string Istr = s.substr(0,3) + '-' + s.substr(3,3);
-
-    const B oldest = 0b100'100ul, latest = 0b001'001ul;
-    const B latest2 = (latest << 1ul) | latest;
-    // In this implementation, upper/lower bits correspond to A/B, respectively
-    const B a_mask = 0b111'000ul;
-    const B b_mask = 0b000'111ul;
-    const size_t na = (I & a_mask).count(), nb = (I & b_mask).count();
-
-    size_t last_ccc = 3;
-    for (size_t t = 0; t < 3; t++) {
-      if ((I & (latest<<t)) == B(0ul)) {  // CCC is found at t step before
-        last_ccc = t;
-        break;
-      }
-    }
-
-    // C: cooperate if the mutual cooperation is formed at last two rounds
-    if ((I & latest2) == 0ul) {
-      return C;
-    }
-      // C0: cooperate if the last action profile is CCC & relative payoff profile is equal
-    else if ((I & latest) == 0ul) {
-      if (na == nb) {
-        return C;
-      }
-    }
-    else if (last_ccc > 0 && last_ccc < 3) {
-      B mask = latest;
-      for (size_t t = 0; t < last_ccc; t++) { mask = ((mask << 1ul) | latest); }
-      // A: Accept punishment by prescribing *C* if all your relative payoffs are at least zero.
-      size_t pa = (I & mask & a_mask).count();
-      size_t pb = (I & mask & b_mask).count();
-      if (pa >= pb) {
-        return C;
-      }
-      // P: Punish by *D* if any of your relative payoffs is negative.
-      else {
-        return D;
-      }
-    }
-    // R: grab the chance to recover
-    if (I == 0b111'110 || I == 0b110'111) {
-      // R: If payoff profile is (+1,+1,-1), prescribe *C*.
-      return C;
-    }
-    if (I == 0b110'100 || I == 0b100'110) {
-      return C;
-    }
-    // In all other cases, *D*
-    return D;
-  };
-
   const size_t N = 64;
   std::array<Action,64> acts{};
   for (size_t i = 0; i < N; i++) {
-    acts[i] = capri2_action_at(i);
+    acts[i] = CAPRIn_action_at(i, false);
   }
   StrategyN2M3 capri2(acts);
+  std::cerr << "CAPRI-2" << std::endl;
   std::cerr << capri2 << std::endl;
 
   std::cerr << "difference of CAPRI-2 from CAPRI" << std::endl;
@@ -413,71 +411,25 @@ void test_CAPRI2() {
   const auto simp_auto = capri2.MinimizeDFA(false).to_map();
   myassert(simp_auto.size() == 10);
   const auto full_auto = capri2.MinimizeDFA(true).to_map();
-  myassert(full_auto.size() == 16);
+  myassert(full_auto.size() == 18);
 
   const auto simp_a = capri2.MinimizeDFAHopcroft(false).to_map();
-  myassert(simp_a.size() == 10);
   myassert(simp_auto == simp_a);
   const auto full_a = capri2.MinimizeDFAHopcroft(true).to_map();
   myassert(full_auto == full_a);
 }
+
 
 void test_sCAPRI2() {
   StrategyN2M3 capri("cdddcdddcdcddddddcddcdddddddddddcdcdcdcdddddddddddddcdccddddddcd");
 
   // action table of sCAPRI-2
   typedef std::bitset<6> B;
-  auto capri_action_at = [](size_t i)->Action {
-    const B I(i);
-    std::string s = I.to_string('c', 'D');
-    std::reverse(s.begin(), s.end());
-    const std::string Istr = s.substr(0,3) + '-' + s.substr(3,3);
-
-    const B oldest = 0b100'100ul, latest = 0b001'001ul;
-    // In this implementation, upper/lower bits correspond to A/B, respectively
-    const B a_mask = 0b111'000ul;
-    const B b_mask = 0b000'111ul;
-    const size_t na = (I & a_mask).count(), nb = (I & b_mask).count();
-
-    size_t last_ccc = 3;
-    for (size_t t = 0; t < 3; t++) {
-      if ((I & (latest<<t)) == B(0ul)) {  // CCC is found at t step before
-        last_ccc = t;
-        break;
-      }
-    }
-
-    // C: cooperate if the mutual cooperation is formed at last two rounds
-    if ((I & latest) == 0ul) {
-      return C;
-    }
-    else if (last_ccc > 0 && last_ccc < 3) {
-      B mask = latest;
-      for (size_t t = 0; t < last_ccc; t++) { mask = ((mask << 1ul) | latest); }
-      // A: Accept punishment by prescribing *C* if all your relative payoffs are at least zero.
-      size_t pa = (I & mask & a_mask).count();
-      size_t pb = (I & mask & b_mask).count();
-      if (pa >= pb) {
-        return C;
-      }
-      // P: Punish by *D* if any of your relative payoffs is negative.
-      else {
-        return D;
-      }
-    }
-    // R: grab the chance to recover
-    if (I == 0b111'110 || I == 0b110'111) {
-      // R: If payoff profile is (+1,+1,-1), prescribe *C*.
-      return C;
-    }
-    // In all other cases, *D*
-    return D;
-  };
 
   const size_t N = 64;
   std::array<Action,64> acts{};
   for (size_t i = 0; i < N; i++) {
-    acts[i] = capri_action_at(i);
+    acts[i] = CAPRIn_action_at(i, true);
   }
   StrategyN2M3 scapri2(acts);
   std::cerr << "scapri2" << std::endl << scapri2 << std::endl;
