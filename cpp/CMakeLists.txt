@@ -17,3 +17,5 @@ add_executable(test_StrategyN3M5 test_StrategyN3M5.cpp ${SOURCE_N3M5_FILES})
 find_package(OpenMP REQUIRED)
 add_executable(main_evo main_evo.cpp ${SOURCE_N3M5_FILES} main_evo.cpp)
 target_link_libraries(main_evo PRIVATE OpenMP::OpenMP_CXX)
+
+add_executable(main_run_game_N4 main_run_game_N4.cpp Action.cpp Action.hpp)
