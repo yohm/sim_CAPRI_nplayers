@@ -473,6 +473,28 @@ void test_EfficiencyDefensible() {
   myassert(full_auto == full_a);
 }
 
+void PrintCAPRIs() {
+  StrategyN2M3 capri("cdddcdddcdcddddddcddcdddddddddddcdcdcdcdddddddddddddcdccddddddcd");
+  const size_t N = 64;
+  std::array<Action,N> X,Y;
+  for (size_t i = 0; i < N; i++) {
+    X[i] = CAPRIn_action_at(i, true);
+    Y[i] = CAPRIn_action_at(i, false);
+  }
+  StrategyN2M3 scapri2(X);
+  StrategyN2M3 capri2(Y);
+
+  for (int i = 0; i < 8; i++) {
+    std::cout << i;
+    for (int j = 0; j < 8; j++) {
+      StateN2M3 s(i*8 + j);
+      // std::cout << " & $" << capri.ActionAt(s) << "," << scapri2.ActionAt(s) << "," << capri2.ActionAt(s) << "$";
+      std::cout << " & $" << capri2.ActionAt(s) << "$";
+    }
+    std::cout << " \\\\" << std::endl;
+  }
+}
+
 int main() {
   std::cout << "Testing StrategyN2M3 class" << std::endl;
 
@@ -483,6 +505,8 @@ int main() {
   test_CAPRI();
   test_CAPRI2();
   test_sCAPRI2();
+  PrintCAPRIs();
+
   return 0;
 }
 
