@@ -19,4 +19,6 @@ add_executable(main_evo main_evo.cpp ${SOURCE_N3M5_FILES} main_evo.cpp)
 target_link_libraries(main_evo PRIVATE OpenMP::OpenMP_CXX)
 
 add_executable(main_run_game_N4 main_run_game_N4.cpp Action.cpp Action.hpp)
+
 add_executable(main_run_N4_efficiency main_run_N4_efficiency.cpp Action.cpp Action.hpp)
+target_link_libraries(main_run_N4_efficiency PRIVATE OpenMP::OpenMP_CXX)
