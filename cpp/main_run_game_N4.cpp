@@ -8,6 +8,7 @@
 #include <array>
 #include <bitset>
 #include <random>
+#include <cstdint>
 #include "Action.hpp"
 
 class StateN4M7 {
@@ -165,12 +166,20 @@ void Run(size_t t_max, double benefit, std::mt19937_64 &rnd) {
   std::cout << std::endl;
 }
 
-int main() {
-  size_t t_max = 1'000'0;
-  double benefit = 3.0;
-  size_t n_samples = 1000;
-  std::mt19937_64 rnd(1234567890);
+int main(int argc, char* argv[]) {
+  if (argc != 5) {
+    std::cerr << "invalid number of arguments" << std::endl;
+    std::cerr << "usage: " << argv[0] << " <t_max> <benefit> <n_samples> <seed>" << std::endl;
+  }
+
+  uint64_t t_max = std::strtoull(argv[1], nullptr,0);
+  double benefit = std::strtod(argv[2], nullptr);
+  uint64_t n_samples = std::strtoull(argv[3], nullptr,0);
+  uint64_t seed = std::strtoull(argv[4], nullptr,0);
+
+  std::mt19937_64 rnd(seed);
   for (size_t n = 0; n < n_samples; n++) {
+    if (n % 1000 == 0) { std::cerr << "n: " << n << std::endl; }
     Run(t_max, benefit, rnd);
   }
   return 0;
