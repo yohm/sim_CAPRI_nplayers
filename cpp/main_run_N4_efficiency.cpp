@@ -29,6 +29,10 @@ class StateN4M7 {
   bool All() const {
     return (ha.all() && hb.all() && hc.all() && hd.all());
   }
+  bool State1() const {
+    unsigned long x = ha.to_ulong() + hb.to_ulong() + hc.to_ulong() + hd.to_ulong();
+    return (x == 1);
+  }
   std::array<double,4> Payoffs(double b) const {
     int n_c = 0;
     std::array<double,4> ans = {0.0, 0.0, 0.0, 0.0};
@@ -117,9 +121,24 @@ std::pair<uint64_t, double> RunFromC(double e, std::mt19937_64 &rnd, uint64_t id
   StateN4M7 current;
   uint64_t num_c = 0;
   uint64_t t = 0;
+  int64_t residual = -1;
   while (!current.All()) {
     std::array<Action,4> acts = {C, C, C, C};
-    if (!current.Any()) {
+    if (residual >= 0) {
+      for (size_t i = 0; i < 4; i++) {
+        acts[i] = CAPRI4_Action(current, i);
+        if (residual >= 0) {
+          if (residual == 0) {
+            acts[i] = (acts[i] == C) ? D : C;
+          }
+          residual--;
+        }
+        else if (uni(rnd) < e) {
+          acts[i] = (acts[i] == C) ? D : C;
+        }
+      }
+    }
+    else if (!current.Any()) {
       size_t jump = static_cast<int>( std::log(uni(rnd)) * lambda );
       size_t dt = jump / 4;
       num_c += dt * 4;
@@ -128,6 +147,24 @@ std::pair<uint64_t, double> RunFromC(double e, std::mt19937_64 &rnd, uint64_t id
       acts[tgt] = D;
       for (size_t i = tgt + 1; i < 4; i++) {
         if (uni(rnd) < e) { acts[i] = D; }
+      }
+    }
+    else if (current.State1()) { // (ccccccc, ...,ccccccd)
+      size_t jump = static_cast<int>( std::log(uni(rnd)) * lambda );
+      size_t dt = jump / 4;
+      if (dt >= 8) {
+        current.ha.reset(); current.hb.reset(); current.hc.reset(); current.hd.reset();
+        num_c += (dt-1) * 4; // since d is used once for each player
+        t += dt;
+        size_t tgt = jump % 4;
+        acts[tgt] = D;
+        for (size_t i = tgt + 1; i < 4; i++) {
+          if (uni(rnd) < e) { acts[i] = D; }
+        }
+      }
+      else {
+        residual = jump;
+        continue;
       }
     }
     else {
