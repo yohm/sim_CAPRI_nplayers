@@ -84,7 +84,7 @@ def make_fig(histo, b):
     plt.imshow(histo, cmap='Blues', origin='lower', interpolation='antialiased', extent=(p_range[0],p_range[1],p_range[0],p_range[1]), norm=colors.LogNorm())
 
 make_fig(H4,benefit)
-# plt.savefig("n4_dist.pdf")
+plt.savefig("n4_dist.pdf")
 
 # +
 # when n=3, benefit = 1.5
@@ -128,6 +128,40 @@ def draw_theoretical_n3(b):
     plt.plot(0, 0, 'x', color='black')
 draw_theoretical_n3(benefit)
 plt.imshow(H3, cmap='Blues', origin='lower', interpolation='antialiased', extent=(p_range[0],p_range[1],p_range[0],p_range[1]), norm=colors.LogNorm())
+plt.savefig("n3_dist.pdf")
 
+# when n=2
+# payoff range : [-0.5, 1.0]
+dat = np.loadtxt("n2_capri2_samples.dat")
+benefit = 1.5
+p_range = [benefit/2 - 1, benefit/2]
+Hb, xedges, yedges = np.histogram2d(dat[:,0], dat[:,1], bins=100, range=[p_range,p_range])
+H2 = Hb.T # Let each row list bins with common y range.
+
+
+def draw_theoretical_n2(b):
+    c = 'gray'
+    p0 = (0.0, 0.0)
+    p1 = (b * 1/2, b * 1/2 - 1)
+    p2 = (b - 1, b - 1)
+    p3 = (b * 1/2 - 1, b * 1/2)
+    def draw_line(s, e, ls='solid'):
+        x = np.linspace(s[0], e[0], 100)
+        y = np.linspace(s[1], e[1], 100)
+        plt.plot(x,y,color=c, linewidth=0.5, linestyle=ls)
+    draw_line(p0, p1)
+    draw_line(p1, p2)
+    draw_line(p2, p3)
+    draw_line(p3, p0)
+    draw_line(p0, p2, ls='dotted')
+    plt.xlim(p3[0], p1[0])
+    plt.ylim(p1[1], p3[1])
+    plt.xticks([0,0.5])
+    plt.yticks([0,0.5])
+    plt.plot(p2[0], p2[1], 'o', color='magenta')
+    plt.plot((p0[0]+p2[0])/2, (p0[1]+p2[1])/2, 'x', color='black')
+draw_theoretical_n2(benefit)
+plt.imshow(H2, cmap='Blues', origin='lower', interpolation='antialiased', extent=(p_range[0],p_range[1],p_range[0],p_range[1]), norm=colors.LogNorm())
+plt.savefig("n2_dist.pdf")
 
 
