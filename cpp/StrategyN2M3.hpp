@@ -31,7 +31,7 @@ class StateN2M3 {
   StateN2M3(const char str[6]) :
       a_3(C2A(str[0])), a_2(C2A(str[1])), a_1(C2A(str[2])),
       b_3(C2A(str[3])), b_2(C2A(str[4])), b_1(C2A(str[5])) {};
-  const Action a_3, a_2, a_1, b_3, b_2, b_1;
+  Action a_3, a_2, a_1, b_3, b_2, b_1;
 
   bool operator==(const StateN2M3 &rhs) const {
     return (a_3 == rhs.a_3 && a_2 == rhs.a_2 && a_1 == rhs.a_1 && b_3 == rhs.b_3 && b_2 == rhs.b_2 && b_1 == rhs.b_1);

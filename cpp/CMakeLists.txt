@@ -22,6 +22,8 @@ add_executable(main_run_N4_defensibility main_run_N4_defensibility.cpp Action.cp
 target_link_libraries(main_run_N4_defensibility PRIVATE OpenMP::OpenMP_CXX)
 add_executable(main_run_N3_defensibility main_run_N3_defensibility.cpp ${SOURCE_N3M5_FILES})
 target_link_libraries(main_run_N3_defensibility PRIVATE OpenMP::OpenMP_CXX)
+add_executable(main_run_N2_defensibility main_run_N2_defensibility.cpp ${SOURCE_N2M3_FILES})
+target_link_libraries(main_run_N2_defensibility PRIVATE OpenMP::OpenMP_CXX)
 
 add_executable(main_run_N4_efficiency main_run_N4_efficiency.cpp Action.cpp Action.hpp)
 target_link_libraries(main_run_N4_efficiency PRIVATE OpenMP::OpenMP_CXX)
