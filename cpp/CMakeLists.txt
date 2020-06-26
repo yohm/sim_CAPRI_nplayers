@@ -19,6 +19,7 @@ add_executable(main_evo main_evo.cpp ${SOURCE_N3M5_FILES} main_evo.cpp)
 target_link_libraries(main_evo PRIVATE OpenMP::OpenMP_CXX)
 
 add_executable(main_run_N4_defensibility main_run_N4_defensibility.cpp Action.cpp Action.hpp)
+target_link_libraries(main_run_N4_defensibility PRIVATE OpenMP::OpenMP_CXX)
 add_executable(main_run_N3_defensibility main_run_N3_defensibility.cpp ${SOURCE_N3M5_FILES})
 target_link_libraries(main_run_N3_defensibility PRIVATE OpenMP::OpenMP_CXX)
 

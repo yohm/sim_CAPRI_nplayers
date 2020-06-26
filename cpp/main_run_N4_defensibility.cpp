@@ -135,7 +135,7 @@ class Mem1Strategy {
   }
 };
 
-void Run(size_t t_max, double benefit, std::mt19937_64 &rnd) {
+std::array<double,4> Run(size_t t_max, double benefit, std::mt19937_64 &rnd) {
   std::uniform_real_distribution<double> uni;
 
   StateN4M7 current;
@@ -162,8 +162,9 @@ void Run(size_t t_max, double benefit, std::mt19937_64 &rnd) {
       }
     }
   }
-  for (int i = 0; i < 4; i++) { std::cout << payoffs[i] / t_max << ' '; }
-  std::cout << std::endl;
+
+  for (int i = 0; i < 4; i++) { payoffs[i] /= t_max; }
+  return payoffs;
 }
 
 int main(int argc, char* argv[]) {
@@ -175,12 +176,19 @@ int main(int argc, char* argv[]) {
   uint64_t t_max = std::strtoull(argv[1], nullptr,0);
   double benefit = std::strtod(argv[2], nullptr);
   uint64_t n_samples = std::strtoull(argv[3], nullptr,0);
-  uint64_t seed = std::strtoull(argv[4], nullptr,0);
+  uint64_t seed_base = std::strtoull(argv[4], nullptr,0);
 
-  std::mt19937_64 rnd(seed);
-  for (size_t n = 0; n < n_samples; n++) {
+  std::vector<std::array<double,4> > ans(n_samples);
+#pragma omp parallel for
+  for (uint64_t n = 0; n < n_samples; n++) {
     if (n % 1000 == 0) { std::cerr << "n: " << n << std::endl; }
-    Run(t_max, benefit, rnd);
+    std::seed_seq seed = {seed_base, n};
+    std::mt19937_64 rnd(seed);
+    ans[n] = Run(t_max, benefit, rnd);
+  }
+
+  for (auto x: ans) {
+    std::cout << x[0] << ' ' << x[1] << ' ' << x[2] << ' ' << x[3] << std::endl;
   }
   return 0;
 }
