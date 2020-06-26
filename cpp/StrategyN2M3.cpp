@@ -504,3 +504,75 @@ std::array<std::set<size_t>,2> StrategyN2M3::_SplitBySplitter(const Partition &p
   return {P1, P2};
 }
 
+Action CAPRIn_action_at(size_t i, bool s_capri) {
+  typedef std::bitset<6> B;
+  const B I(i);
+  std::string s = I.to_string('c', 'D');
+  std::reverse(s.begin(), s.end());
+  const std::string Istr = s.substr(0,3) + '-' + s.substr(3,3);
+
+  const B oldest = 0b100'100ul, latest = 0b001'001ul;
+  // In this implementation, upper/lower bits correspond to A/B, respectively
+  const B a_mask = 0b111'000ul;
+  const B b_mask = 0b000'111ul;
+  const size_t na = (I & a_mask).count(), nb = (I & b_mask).count();
+
+  // E: Exploit others if payoff difference is n or greater
+  if (!s_capri) {
+    int d = std::max(na, nb) - std::min(na, nb);
+    if (d >= 2) { return D; }
+  }
+
+  size_t last_ccc = 3;
+  for (size_t t = 0; t < 3; t++) {
+    if ((I & (latest<<t)) == B(0ul)) {  // CCC is found at t step before
+      last_ccc = t;
+      break;
+    }
+  }
+
+  // C: cooperate if the mutual cooperation is formed at last two rounds
+  if ((I & latest) == 0ul) {
+    return C;
+  }
+  else if (last_ccc > 0 && last_ccc < 3) {
+    B mask = latest;
+    for (size_t t = 0; t < last_ccc; t++) { mask = ((mask << 1ul) | latest); }
+    // A: Accept punishment by prescribing *C* if all your relative payoffs are at least zero.
+    size_t pa = (I & mask & a_mask).count();
+    size_t pb = (I & mask & b_mask).count();
+    if (pa >= pb) {
+      return C;
+    }
+      // P: Punish by *D* if any of your relative payoffs is negative.
+    else {
+      return D;
+    }
+  }
+  // R: grab the chance to recover
+  if (I == 0b111'110 || I == 0b110'111) {
+    // R: If payoff profile is (+1,+1,-1), prescribe *C*.
+    return C;
+  }
+  // In all other cases, *D*
+  return D;
+
+}
+
+StrategyN2M3 StrategyN2M3::CAPRI2() {
+  const size_t N = 64;
+  std::array<Action,64> acts{};
+  for (size_t i = 0; i < N; i++) {
+    acts[i] = CAPRIn_action_at(i, false);
+  }
+  return std::move(StrategyN2M3(acts));
+}
+
+StrategyN2M3 StrategyN2M3::sCAPRI2() {
+  const size_t N = 64;
+  std::array<Action,64> acts{};
+  for (size_t i = 0; i < N; i++) {
+    acts[i] = CAPRIn_action_at(i, true);
+  }
+  return std::move(StrategyN2M3(acts));
+}
