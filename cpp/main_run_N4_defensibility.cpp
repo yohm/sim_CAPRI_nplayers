@@ -23,15 +23,23 @@ class StateN4M7 {
     if (d == D) { hd.set(0); }
   }
   std::array<double,4> Payoffs(double b) const {
-    int n_c = 0;
     std::array<double,4> ans = {0.0, 0.0, 0.0, 0.0};
-    if (ha[0] == C) { n_c++; ans[0] = -1.0; }
-    if (hb[0] == C) { n_c++; ans[1] = -1.0; }
-    if (hc[0] == C) { n_c++; ans[2] = -1.0; }
-    if (hd[0] == C) { n_c++; ans[3] = -1.0; }
-    for (size_t i = 0; i < 4; i++) {
-      ans[i] += n_c * b / 4.0;
-    }
+    // Public goods game with multiplication factor b
+    // int n_c = 0;
+    // if (ha[0] == C) { n_c++; ans[0] = -1.0; }
+    // if (hb[0] == C) { n_c++; ans[1] = -1.0; }
+    // if (hc[0] == C) { n_c++; ans[2] = -1.0; }
+    // if (hd[0] == C) { n_c++; ans[3] = -1.0; }
+    // for (size_t i = 0; i < 4; i++) {
+    //   ans[i] += n_c * b / 4.0;
+    // }
+
+    // Donation game with b
+    if (!ha[0]) { ans[0] -= 1.0; ans[1] += b / 3.0; ans[2] += b / 3.0; ans[3] += b / 3.0; }
+    if (!hb[0]) { ans[1] -= 1.0; ans[2] += b / 3.0; ans[3] += b / 3.0; ans[0] += b / 3.0; }
+    if (!hc[0]) { ans[2] -= 1.0; ans[3] += b / 3.0; ans[0] += b / 3.0; ans[1] += b / 3.0; }
+    if (!hd[0]) { ans[3] -= 1.0; ans[0] += b / 3.0; ans[1] += b / 3.0; ans[2] += b / 3.0; }
+
     return std::move(ans);
   }
 };
@@ -157,7 +165,7 @@ std::array<double,4> Run(size_t t_max, double benefit, std::mt19937_64 &rnd) {
     auto p = current.Payoffs(benefit);
     for (int i = 0; i < 4; i++) {
       payoffs[i] += p[i];
-      if (i > 0 && payoffs[i] >= payoffs[0] + 2.0) {
+      if (i > 0 && payoffs[i] >= payoffs[0] + 2.0*(benefit+1.0) ) {
         throw std::runtime_error("defensibility is violated");
       }
     }

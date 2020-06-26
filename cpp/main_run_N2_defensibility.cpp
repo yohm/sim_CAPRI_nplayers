@@ -50,20 +50,33 @@ std::array<double,2> Run(size_t t_max, double benefit, std::mt19937_64 &rnd) {
     current = current.NextState(act_a, act_b);
 
     std::array<double,2> p = {0.0, 0.0};
-    int n_c = 0;
+    // Public goods game with multiplication factor benefit
+    // int n_c = 0;
+    // if (act_a == C) {
+    //   p[0] -= 1.0;
+    //   n_c++;
+    // }
+    // if (act_b == C) {
+    //   p[1] -= 1.0;
+    //   n_c++;
+    // }
+    // for (int i = 0; i < 2; i++) { p[i] += benefit * n_c / 2.0; }
+    // double margin = 2.0;
+
+    // Donation game
     if (act_a == C) {
       p[0] -= 1.0;
-      n_c++;
+      p[1] += benefit;
     }
     if (act_b == C) {
       p[1] -= 1.0;
-      n_c++;
+      p[0] += benefit;
     }
-    for (int i = 0; i < 2; i++) { p[i] += benefit * n_c / 2.0; }
+    double margin = 2.0 * (benefit + 1.0);
 
     for (int i = 0; i < 2; i++) {
       payoffs[i] += p[i];
-      if (i > 0 && payoffs[i] >= payoffs[0] + 2.0) {
+      if (i > 0 && payoffs[i] >= payoffs[0] + margin) {
         throw std::runtime_error("defensibility is violated");
       }
     }

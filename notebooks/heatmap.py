@@ -164,4 +164,129 @@ draw_theoretical_n2(benefit)
 plt.imshow(H2, cmap='Blues', origin='lower', interpolation='antialiased', extent=(p_range[0],p_range[1],p_range[0],p_range[1]), norm=colors.LogNorm())
 plt.savefig("n2_dist.pdf")
 
+# when n=2, donation game
+dat = np.loadtxt("n2_donation_samples.dat")
+benefit = 3
+p_range = [-1, benefit]
+Hb, xedges, yedges = np.histogram2d(dat[:,0], dat[:,1], bins=100, range=[p_range,p_range])
+H2d = Hb.T # Let each row list bins with common y range.
+
+
+def draw_theoretical_n2d(b):
+    c = 'gray'
+    p0 = (0.0, 0.0)
+    p1 = (b, -1)
+    p2 = (b - 1, b - 1)
+    p3 = (-1, b)
+    def draw_line(s, e, ls='solid'):
+        x = np.linspace(s[0], e[0], 100)
+        y = np.linspace(s[1], e[1], 100)
+        plt.plot(x,y,color=c, linewidth=0.5, linestyle=ls)
+    draw_line(p0, p1)
+    draw_line(p1, p2)
+    draw_line(p2, p3)
+    draw_line(p3, p0)
+    draw_line(p0, p2, ls='dotted')
+    plt.xlim(p3[0], p1[0])
+    plt.ylim(p1[1], p3[1])
+    plt.xticks([-1,0,1,2,3])
+    plt.yticks([-1,0,1,2,3])
+    plt.plot(p2[0], p2[1], 'o', color='magenta')
+    plt.plot((p0[0]+p2[0])/2, (p0[1]+p2[1])/2, 'x', color='black')
+draw_theoretical_n2d(benefit)
+plt.imshow(H2d, cmap='Blues', origin='lower', interpolation='antialiased', extent=(p_range[0],p_range[1],p_range[0],p_range[1]), norm=colors.LogNorm())
+plt.savefig("n2_donation_dist.pdf")
+
+# when n=3, donation game
+dat = np.loadtxt("n3_donation_samples.dat")
+benefit = 3.0
+p_range = [-1, benefit]
+Hb, xedges, yedges = np.histogram2d(dat[:,0], dat[:,1], bins=100, range=[p_range,p_range])
+Hc, xedges, yedges = np.histogram2d(dat[:,0], dat[:,2], bins=100, range=[p_range,p_range])
+H3d = (Hb + Hc).T # Let each row list bins with common y range.
+
+
+def draw_theoretical_n3d(b):
+    c = 'gray'
+    p0 = (0, 0)
+    p1 = (b * 1/2, -1)
+    p1x= (b * 1/2, b * 1/2)
+    p2 = (b, b * 1/2 -1)
+    p3 = (b - 1, b - 1)
+    p4 = (b * 1/2 - 1, b)
+    p5 = (-1, b * 1/2)
+    def draw_line(s, e, ls='solid'):
+        x = np.linspace(s[0], e[0], 100)
+        y = np.linspace(s[1], e[1], 100)
+        plt.plot(x,y,color=c, linewidth=0.5, linestyle=ls)
+    draw_line(p0, p1)
+    draw_line(p1, p2)
+    draw_line(p2, p3)
+    draw_line(p3, p4)
+    draw_line(p4, p5)
+    draw_line(p5, p0)
+    draw_line(p0, p3, ls='dotted')
+    draw_line(p2, p1x, ls='dotted')
+    plt.xlim(p5[0], p2[0])
+    plt.ylim(p1[1], p4[1])
+    plt.xticks([-1,0,1,2,3])
+    plt.yticks([-1,0,1,2,3])
+    plt.plot(p3[0], p3[1], 'o', color='magenta')
+    plt.plot(0, 0, 'x', color='black')
+draw_theoretical_n3d(benefit)
+plt.imshow(H3d, cmap='Blues', origin='lower', interpolation='antialiased', extent=(p_range[0],p_range[1],p_range[0],p_range[1]), norm=colors.LogNorm())
+plt.savefig("n3_donation_dist.pdf")
+
+# +
+# n=4 donation game
+dat = np.loadtxt("n4_donation_samples.dat")
+
+benefit = 3.0
+p_range = [-1, benefit]
+
+Hb, xedges, yedges = np.histogram2d(dat[:,0], dat[:,1], bins=100, range=[p_range, p_range])
+Hc, xedges, yedges = np.histogram2d(dat[:,0], dat[:,2], bins=100, range=[p_range, p_range])
+Hd, xedges, yedges = np.histogram2d(dat[:,0], dat[:,3], bins=100, range=[p_range, p_range])
+H4d = (Hb + Hc + Hd).T # Let each row list bins with common y range.
+
+
+# -
+
+def draw_theoretical_n4d(b):
+    c = 'gray'
+    lw = 0.5
+    p0 = (0, 0)
+    p1 = (b/3, -1)  # dddc
+    p2 = (2*b/3, b/3 - 1)  # ddcc
+    p3 = (    b, 2*b/3-1)  # dccc
+    p2x= (2*b/3, 2*b/3)
+    p4 = (b-1, b-1)        # cccc
+    p5 = (2*b/3-1, b)      # cccd
+    p6 = (1*b/3-1, 2*b/3)  # ccdd
+    p7 = (-1, 1*b/3)    # cddd
+    p_range = (-1, b)
+    def draw_line(b, e, ls='solid'):
+        x = np.linspace(b[0], e[0], 100)
+        y = np.linspace(b[1], e[1], 100)
+        plt.plot(x,y,color=c, linewidth=0.5, linestyle=ls)
+    draw_line(p0, p1)
+    draw_line(p1, p2)
+    draw_line(p2, p3)
+    draw_line(p3, p4)
+    draw_line(p4, p5)
+    draw_line(p5, p6)
+    draw_line(p6, p7)
+    draw_line(p7, p0)
+    draw_line(p3, p2x, ls='dotted')
+    draw_line(p0, p4, ls='dotted')
+    plt.xlim(p_range[0], p_range[1])
+    plt.ylim(p_range[0], p_range[1])
+    plt.xticks([-1,0,1,2,3])
+    plt.yticks([-1,0,1,2,3])
+    plt.plot(b-1, b-1, 'o', color='magenta')
+    plt.plot(0, 0, 'x', color='black')
+draw_theoretical_n4d(benefit)
+plt.imshow(H4d, cmap='Blues', origin='lower', interpolation='antialiased', extent=(p_range[0],p_range[1],p_range[0],p_range[1]), norm=colors.LogNorm())
+plt.savefig("n4_donation_dist.pdf")
+
 
