@@ -185,7 +185,6 @@ void test_m3_FUSS() {
 
 void test_AON5() {
   const StrategyN3M5 aon5 = StrategyN3M5::AON(5);
-  std::cerr << aon5 << std::endl;
 
   const auto simp_automaton = aon5.MinimizeDFAHopcroft(false);
   std::cerr << "simplified automaton: " << simp_automaton << std::endl;
@@ -210,41 +209,53 @@ void test_AON5() {
 
 
 void test_CAPRI3() {
-  const StrategyN3M5 capri = StrategyN3M5::CAPRI3();
+  const StrategyN3M5 capri3 = StrategyN3M5::CAPRI3();
 
   {
     uint64_t i = StateN3M5("cdccc_dcccc_ccccc").ID();
-    auto t = capri.TraceStates(i);
+    auto t = capri3.TraceStates(i);
     for (uint64_t i: t) {
       std::cerr << StateN3M5(i) << ", "; }
     std::cerr << std::endl;
   }
 
-  auto dests = capri.DestsOfITG();
+  auto dests = capri3.DestsOfITG();
   for (uint64_t d : dests) {
     if (d != 0 && d != 32767) myassert(false);
   }
 
-  auto stat = capri.StationaryState(0.00001);
+  auto stat = capri3.StationaryState(0.0001);
   myassert(stat[0] > 0.99);
   std::cerr << "stationary state" << std::endl;
   for (size_t i = 0; i < stat.size(); i++) {
     if (stat[i] > 0.05) { std::cerr << StateN3M5(i).ToString() << " : " << stat[i] << std::endl; }
   }
 
-  myassert(capri.IsEfficient() == true);
-  myassert(capri.IsEfficientTopo() == true);
+  double coop_level = 0.0;
+  for (size_t i = 0; i < StrategyN3M5::N; i++) {
+    StateN3M5 s(i);
+    double p = stat.at(i);
+    int n_c = 0;
+    if (s.ha[0] == C) n_c++;
+    if (s.hb[0] == C) n_c++;
+    if (s.hc[0] == C) n_c++;
+    coop_level += n_c / 3.0 * p;
+  }
+  std::cerr << "CAPRI3 coop_level: " << coop_level << std::endl;
 
-  myassert(capri.IsDefensibleDFA() == true);
+  myassert(capri3.IsEfficient() == true);
+  myassert(capri3.IsEfficientTopo() == true);
 
-  myassert(capri.IsDistinguishable());
-  myassert(capri.IsDistinguishableTopo());
+  myassert(capri3.IsDefensibleDFA() == true);
 
-  const auto simp_automaton = capri.MinimizeDFAHopcroft(false);
+  myassert(capri3.IsDistinguishable());
+  myassert(capri3.IsDistinguishableTopo());
+
+  const auto simp_automaton = capri3.MinimizeDFAHopcroft(false);
   std::cerr << "simp_automaton: " << simp_automaton.size() << std::endl;
   myassert(simp_automaton.size() == 379);
 
-  const auto full_automaton = capri.MinimizeDFAHopcroft(true);
+  const auto full_automaton = capri3.MinimizeDFAHopcroft(true);
   std::cerr << "full_automaton: " << full_automaton.size() << std::endl;
   myassert(full_automaton.size() == 1446);
 }

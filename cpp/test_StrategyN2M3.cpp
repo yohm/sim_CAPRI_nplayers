@@ -341,6 +341,18 @@ void test_CAPRI2() {
     }
   }
 
+  auto stationary = capri2.StationaryState(0.0001, &capri2);
+  double coop_level = 0.0;
+  for (size_t i = 0; i < 64; i++) {
+    StateN2M3 s(i);
+    double p = stationary.at(i);
+    int n_c = 0;
+    if (s.a_1 == C) n_c++;
+    if (s.b_1 == C) n_c++;
+    coop_level += n_c * 0.5 * p;
+  }
+  std::cerr << "CAPRI2 coop_level: " << coop_level << std::endl;
+
   myassert(capri2.IsEfficient());
   myassert(capri2.IsEfficientTopo());
   myassert(capri2.IsDefensible());
