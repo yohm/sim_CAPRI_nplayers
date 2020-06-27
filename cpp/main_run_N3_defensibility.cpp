@@ -27,7 +27,6 @@ class Mem1StrategyN3 {
   std::array<double,3> pc, pd;
   double CProb(const StateN3M5 &c) const {
     size_t nd = 0;
-    if(c.ha[0]) nd++;
     if(c.hb[0]) nd++;
     if(c.hc[0]) nd++;
     return c.ha[0] ? pd[nd] : pc[nd];
