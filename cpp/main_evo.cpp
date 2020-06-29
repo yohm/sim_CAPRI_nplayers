@@ -304,28 +304,50 @@ class Ecosystem {
     std::array<double, 3> ans = {0.0, 0.0, 0.0};
     if (ss.size() == 8) {
       for (size_t i = 0; i < 8; i++) {
-        size_t num_c = 0;
-        double cost_A = 0.0, cost_B = 0.0, cost_C = 0.0;
-        if ((i & 1ul) == 0) { num_c += 1; cost_A += cost; }
-        if ((i & 2ul) == 0) { num_c += 1; cost_B += cost; }
-        if ((i & 4ul) == 0) { num_c += 1; cost_C += cost; }
-        ans[0] += ss[i] * (num_c * benefit - cost_A);
-        ans[1] += ss[i] * (num_c * benefit - cost_B);
-        ans[2] += ss[i] * (num_c * benefit - cost_C);
-      };
+        double pa = 0.0, pb = 0.0, pc = 0.0;
+        if ((i & 1ul) == 0) {
+          pa -= cost;
+          pb += benefit / 2.0;
+          pc += benefit / 2.0;
+        }
+        if ((i & 2ul) == 0) {
+          pb -= cost;
+          pc += benefit / 2.0;
+          pa += benefit / 2.0;
+        }
+        if ((i & 4ul) == 0) {
+          pc -= cost;
+          pa += benefit / 2.0;
+          pb += benefit / 2.0;
+        }
+        ans[0] += ss[i] * pa;
+        ans[1] += ss[i] * pb;
+        ans[2] += ss[i] * pc;
+      }
     }
     else {
       assert(ss.size() == StrategyN3M5::N);
       for (size_t i = 0; i < StrategyN3M5::N; i++) {
         StateN3M5 s(i);
-        size_t num_c = 0;
-        double cost_A = 0.0, cost_B = 0.0, cost_C = 0.0;
-        if (!s.ha[0]) { num_c += 1; cost_A += cost; }
-        if (!s.hb[0]) { num_c += 1; cost_B += cost; }
-        if (!s.hc[0]) { num_c += 1; cost_C += cost; }
-        ans[0] += ss[i] * (num_c * benefit - cost_A);
-        ans[1] += ss[i] * (num_c * benefit - cost_B);
-        ans[2] += ss[i] * (num_c * benefit - cost_C);
+        double pa = 0.0, pb = 0.0, pc = 0.0;
+        if (!s.ha[0]) {
+          pa -= cost;
+          pb += benefit / 2.0;
+          pc += benefit / 2.0;
+        }
+        if (!s.hb[0]) {
+          pb -= cost;
+          pc += benefit / 2.0;
+          pa += benefit / 2.0;
+        }
+        if (!s.hc[0]) {
+          pc -= cost;
+          pa += benefit / 2.0;
+          pb += benefit / 2.0;
+        }
+        ans[0] += ss[i] * pa;
+        ans[1] += ss[i] * pb;
+        ans[2] += ss[i] * pc;
       }
     }
     return ans;
@@ -432,6 +454,13 @@ class Ecosystem {
     }
     fout.close();
   }
+  std::vector<std::string> SpeciesNames() const {
+    std::vector<std::string> ans;
+    for(auto s: pool) {
+      ans.emplace_back( s.ToString() );
+    }
+    return std::move(ans);
+  }
   double CooperationLevelSpecies(size_t i) const {
     const ss_cache_t &ss = ss_cache[i][i];
     if (ss.size() == 8) {
@@ -504,13 +533,21 @@ int main(int argc, char *argv[]) {
   // pool.emplace_back(66, discrete_level);
   Ecosystem eco(pool, e);
 
+  {
+    std::ofstream namout("species.txt");
+    for(auto name: eco.SpeciesNames()) {
+      namout << name << std::endl;
+    }
+    namout << std::endl;
+  }
+
   auto SweepOverBeta = [&eco,cost,sigma](size_t N) {
     char fname1[100], fname2[100];
     sprintf(fname1, "abundance_%zu.dat", N);
     std::ofstream eqout(fname1);
     sprintf(fname2, "cooperation_level_%zu.dat", N);
     std::ofstream coout(fname2);
-    for (int i = 5; i < 200; i+=5) {
+    for (int i = 5; i <= 300; i+=5) {
       double benefit = 1.0 + i / 100.0;
       auto eq = eco.CalculateEquilibrium(benefit, cost, N, sigma);
       eqout << benefit << ' ';
