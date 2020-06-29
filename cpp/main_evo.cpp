@@ -541,12 +541,11 @@ int main(int argc, char *argv[]) {
     namout << std::endl;
   }
 
-  auto SweepOverBeta = [&eco,cost,sigma](size_t N) {
-    char fname1[100], fname2[100];
+  auto SweepOverBeta = [&eco,cost,sigma](size_t N)->std::vector<std::pair<double,double>> {
+    char fname1[100];
     sprintf(fname1, "abundance_%zu.dat", N);
     std::ofstream eqout(fname1);
-    sprintf(fname2, "cooperation_level_%zu.dat", N);
-    std::ofstream coout(fname2);
+    std::vector<std::pair<double,double>> c_levels;
     for (int i = 5; i <= 300; i+=5) {
       double benefit = 1.0 + i / 100.0;
       auto eq = eco.CalculateEquilibrium(benefit, cost, N, sigma);
@@ -554,13 +553,26 @@ int main(int argc, char *argv[]) {
       for (double x: eq) { eqout << x << ' '; }
       eqout << std::endl;
       double c_lev = eco.CooperationLevel(eq);
-      coout << benefit << ' ' << c_lev << std::endl;
+      c_levels.push_back(std::make_pair(benefit, c_lev));
     }
+    return c_levels;
   };
 
+  std::vector<std::vector<std::pair<double,double>>> ans;
   for (int N = 3; N <= Nmax; N++) {
-    SweepOverBeta(N);
+    auto a = SweepOverBeta(N);
+    ans.push_back(a);
   }
+
+  std::ofstream fout("cooperation_level.dat");
+  for (size_t i = 0; i < ans[0].size(); i++) {
+    fout << ans[0][i].first;
+    for (size_t j = 0; j < ans.size(); j++) {
+      fout << ' ' << ans[j][i].second;
+    }
+    fout << "\n";
+  }
+  fout.close();
 
   return 0;
 }
