@@ -54,7 +54,7 @@ class Mem1Species {
     size_t d1 = ((id/B/B/B/B) % B);
     size_t d2 = ((id/B/B/B/B/B) % B);
     std::ostringstream oss;
-    oss << c0 << '-' << c1 << '-' << c2 << '-' << d0 << '-' << d1 << '-' << d2;
+    oss << c0 << '-' << c1 << '-' << c2 << '-' << d0 << '-' << d1 << '-' << d2 << '/' << DIS;
     return oss.str();
   }
 
