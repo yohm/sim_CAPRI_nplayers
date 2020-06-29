@@ -177,7 +177,7 @@ class Species { // either Mem1Species or StrategyN3M5
     if (is_m1 && sb.is_m1 && sc.is_m1) {
       return m1.StationaryState(sb.m1, sc.m1, error);
     }
-    std::cerr << "calculating stationary state" << std::endl;
+    std::cerr << "calculating stationary state: " << name << ' ' << sb.name << ' ' << sc.name << std::endl;
 
     typedef Eigen::Triplet<double> T;
     std::vector<T> tripletVec;
@@ -216,7 +216,7 @@ class Species { // either Mem1Species or StrategyN3M5
     Eigen::SparseMatrix<double> I(S, S);
     I.setFromTriplets(iVec.cbegin(), iVec.cend());
     A = A + I;
-    std::cerr << "  transition matrix has been created" << std::endl;
+    // std::cerr << "  transition matrix has been created" << std::endl;
 
     Eigen::VectorXd b = Eigen::VectorXd::Zero(S);
     b(S-1) = 1.0;
@@ -225,8 +225,8 @@ class Species { // either Mem1Species or StrategyN3M5
     solver.compute(A);
     Eigen::VectorXd x = solver.solve(b);
 
-    std::cerr << "#iterations:     " << solver.iterations() << std::endl;
-    std::cerr << "estimated error: " << solver.error() << std::endl;
+    // std::cerr << "#iterations:     " << solver.iterations() << std::endl;
+    // std::cerr << "estimated error: " << solver.error() << std::endl;
 
     std::vector<double> ans(S, 0.0);
     for (int i = 0; i < S; i++) { ans[i] = x[i]; }
@@ -410,7 +410,7 @@ class Ecosystem {
     //     −i/6(i^2−3i(N−1)+3N^2−6N+2)s_{xyy}
     //     +i/6(i−1)(2i−3N+2))s_{xxy}
     //     −i/6(i^2−3i+2)s_{xxx}
-    std::cerr << "caclulating fixation prob for mutant " << pool[mutant_idx].ToString() << " against resident " << pool[resident_idx].ToString() << std::endl;
+    // std::cerr << "caclulating fixation prob for mutant " << pool[mutant_idx].ToString() << " against resident " << pool[resident_idx].ToString() << std::endl;
 
     double s_xxx = PayoffVersus(mutant_idx, mutant_idx, benefit, cost)[0];
     double s_yyy = PayoffVersus(resident_idx, resident_idx, benefit, cost)[0];
@@ -421,8 +421,8 @@ class Ecosystem {
     double s_yyx = yyx[0];
     double s_xyy = yyx[1];
 
-    std::cerr << "s_xxx: " << s_xxx << ", s_xxy: " << s_xxy << ", s_xyy: " << s_xyy << std::endl;
-    std::cerr << "s_yyy: " << s_yyy << ", s_yxx: " << s_yxx << ", s_yyx: " << s_yyx << std::endl;
+    // std::cerr << "s_xxx: " << s_xxx << ", s_xxy: " << s_xxy << ", s_xyy: " << s_xyy << std::endl;
+    // std::cerr << "s_yyy: " << s_yyy << ", s_yxx: " << s_yxx << ", s_yyx: " << s_yyx << std::endl;
 
     double num_games = (N-1) * (N-2) / 2.0;
     double rho_inv = 0.0;
