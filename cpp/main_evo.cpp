@@ -516,14 +516,15 @@ int main(int argc, char *argv[]) {
   unsigned long add_fussm3 = std::strtoul(argv[8], nullptr, 0);
 
   std::vector<Species> pool = (full_or_reactive == 1 ? Species::Memory1Species(discrete_level) : Species::ReactiveMem1Species(discrete_level));
+  size_t N_M1 = Mem1Species::N_M1_Species(discrete_level);
   if (add_capri3 == 1) {
-    pool.emplace_back(64, discrete_level);
+    pool.emplace_back(N_M1, discrete_level);
   }
   if (add_aon3) {
-    pool.emplace_back(65, discrete_level);
+    pool.emplace_back(N_M1+1, discrete_level);
   }
   if (add_fussm3) {
-    pool.emplace_back(66, discrete_level);
+    pool.emplace_back(N_M1+2, discrete_level);
   }
   Ecosystem eco(pool, e);
 
