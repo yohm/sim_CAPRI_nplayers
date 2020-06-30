@@ -296,7 +296,7 @@ class Ecosystem {
   // payoff of species i and j when the game is played by (i,i,j)
   std::array<double,2> PayoffVersus(size_t i, size_t j, double benefit, double cost) const {
     std::array<double, 3> ans = Payoffs(ss_cache[i][j], benefit, cost);
-    assert(ans[0] == ans[1]);
+    assert( std::abs(ans[0] - ans[1]) < 0.00001 );
     return {ans[0], ans[2]};
   }
 
