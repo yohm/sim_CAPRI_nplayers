@@ -55,6 +55,8 @@ class Mem1Species {
     size_t d2 = ((id/B/B/B/B/B) % B);
     std::ostringstream oss;
     oss << c0 << '-' << c1 << '-' << c2 << '-' << d0 << '-' << d1 << '-' << d2 << '/' << DIS;
+    if (IsDefensible()) { oss << "_D"; }
+    if (IsEfficient()) { oss << "_E"; }
     return oss.str();
   }
 
@@ -132,7 +134,90 @@ class Mem1Species {
       else if (num_d == 1) { return prob.c1; }
       else { return prob.c0; } // num_d == 0
     }
-  };
+  }
+
+  // returns false for mixed strategy
+  bool IsDefensible() const {
+    double tolerance = 1.0e-8;
+    if (prob.c0 > tolerance && prob.c0 < 1.0 - tolerance) { return false; }
+    if (prob.c1 > tolerance && prob.c1 < 1.0 - tolerance) { return false; }
+    if (prob.c2 > tolerance && prob.c2 < 1.0 - tolerance) { return false; }
+    if (prob.d0 > tolerance && prob.d0 < 1.0 - tolerance) { return false; }
+    if (prob.d1 > tolerance && prob.d1 < 1.0 - tolerance) { return false; }
+    if (prob.d2 > tolerance && prob.d2 < 1.0 - tolerance) { return false; }
+
+    // N = 2^{3}
+    const size_t N = 8;
+    typedef std::array<std::array<int, N>, N> d_matrix_t;
+    typedef std::bitset<3> b3_t;
+    d_matrix_t d;
+
+    // construct adjacency matrix
+    const int INF = N; // N is large enough since the path length is between -N/4 to N/4.
+    for (size_t i = 0; i < N; i++) {
+      for (size_t j = 0; j < N; j++) {
+        d[i][j] = INF;
+      }
+    }
+
+    for (size_t i = 0; i < N; i++) {
+      b3_t si(i);
+      bool a0 = si[0];
+      size_t nd0 = (si & std::bitset<3>(0b110)).count();
+      bool act_a = false;
+      if (a0) {
+        if (nd0 == 0) { act_a = (prob.d0 > 0.5 ? false : true); }
+        else if (nd0 == 1) { act_a = (prob.d1 > 0.5 ? false : true); }
+        else if (nd0 == 2) { act_a = (prob.d2 > 0.5 ? false : true); }
+        else { assert(false); }
+      }
+      else {
+        if (nd0 == 0) { act_a = (prob.c0 > 0.5 ? false : true); }
+        else if (nd0 == 1) { act_a = (prob.c1 > 0.5 ? false : true); }
+        else if (nd0 == 2) { act_a = (prob.c2 > 0.5 ? false : true); }
+        else { assert(false); }
+      }
+
+      // Get possible next states
+      std::array<b3_t,4> sjs = { 0b000, 0b010, 0b100, 0b110 };
+      for (auto sj: sjs) {
+        if (act_a) {
+          sj.set(0);
+          if(sj[1]) {  // A:D, B:D
+            d[i][sj.to_ulong()] = 0;
+          }
+          else {  // A: D, B: C
+            d[i][sj.to_ulong()] = 1;
+          }
+        }
+        else {
+          sj.reset(0);
+          if(sj[1]) {  // A:C, B:D
+            d[i][sj.to_ulong()] = -1;
+          }
+          else {  // A: C, B: C
+            d[i][sj.to_ulong()] = 0;
+          }
+        }
+      }
+      if (d[i][i] < 0) { return false; }
+    }
+
+    for (size_t k = 0; k < N; k++) {
+      for (size_t i = 0; i < N; i++) {
+        for (size_t j = 0; j < N; j++) {
+          d[i][j] = std::min(d[i][j], d[i][k] + d[k][j]);
+        }
+        if (d[i][i] < 0) { return false; }
+      }
+    }
+    return true;
+  }
+
+  bool IsEfficient() const {
+    auto ss = StationaryState(*this, *this, 0.0001);
+    return (ss[0] > 0.99);
+  }
 };
 
 
