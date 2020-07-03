@@ -17,8 +17,8 @@ set(SOURCE_N3M5_FILES Action.cpp Action.hpp StrategyN3M5.cpp StrategyN3M5.hpp Di
 add_executable(test_StrategyN3M5 test_StrategyN3M5.cpp ${SOURCE_N3M5_FILES})
 
 find_package(OpenMP REQUIRED)
-add_executable(main_evo main_evo.cpp ${SOURCE_N3M5_FILES} main_evo.cpp)
-target_link_libraries(main_evo PRIVATE OpenMP::OpenMP_CXX)
+add_executable(main_evo_n3 main_evo_n3.cpp ${SOURCE_N3M5_FILES} main_evo_n3.cpp)
+target_link_libraries(main_evo_n3 PRIVATE OpenMP::OpenMP_CXX)
 
 add_executable(main_run_N4_defensibility main_run_N4_defensibility.cpp Action.cpp Action.hpp)
 target_link_libraries(main_run_N4_defensibility PRIVATE OpenMP::OpenMP_CXX)
