@@ -501,9 +501,9 @@ class Ecosystem {
 
 int main(int argc, char *argv[]) {
   Eigen::initParallel();
-  if( argc != 9 ) {
+  if( argc != 10 ) {
     std::cerr << "Error : invalid argument" << std::endl;
-    std::cerr << "  Usage : " << argv[0] << " <Nmax> <sigma> <error rate> <discrete_level> <0:reactive/1:full memory1> <1:capri2> <1:aon3> <1:tft_atft>" << std::endl;
+    std::cerr << "  Usage : " << argv[0] << " <Nmax> <sigma> <error rate> <discrete_level> <0:reactive/1:full memory1> <1:capri2> <1:capri> <1:aon3> <1:tft_atft>" << std::endl;
     return 1;
   }
 
@@ -515,13 +515,17 @@ int main(int argc, char *argv[]) {
 
   unsigned long full_or_reactive = std::strtoul(argv[5], nullptr, 0);
   unsigned long add_capri2 = std::strtoul(argv[6], nullptr, 0);
-  unsigned long add_aon3 = std::strtoul(argv[7], nullptr, 0);
-  unsigned long add_tftatft = std::strtoul(argv[8], nullptr, 0);
+  unsigned long add_capri = std::strtoul(argv[7], nullptr, 0);
+  unsigned long add_aon3 = std::strtoul(argv[8], nullptr, 0);
+  unsigned long add_tftatft = std::strtoul(argv[9], nullptr, 0);
 
   std::vector<Species> pool = (full_or_reactive == 1 ? Species::Memory1Species(discrete_level) : Species::ReactiveMem1Species(discrete_level));
   size_t N_M1 = Mem1Species::N_M1_Species(discrete_level);
-  if (add_capri2 == 1) {
-    pool.emplace_back(N_M1, discrete_level);
+  if (add_capri2) {
+    pool.emplace_back(N_M1+0, discrete_level);
+  }
+  if (add_capri) {
+    pool.emplace_back(N_M1+1, discrete_level);
   }
   if (add_aon3) {
     pool.emplace_back(N_M1+4, discrete_level);
