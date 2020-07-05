@@ -284,6 +284,20 @@ void test_TFTATFT() {
   myassert(full_auto == full_a);
 }
 
+void test_AON() {
+  for (size_t n = 1; n <= 3; n++) {
+    StrategyN2M3 aon = StrategyN2M3::AON(n);
+    myassert(aon.IsDefensible() == false);
+    myassert(aon.IsDefensibleDFA() == false);
+
+    myassert(aon.IsEfficient());
+    myassert(aon.IsEfficientTopo());
+
+    myassert(aon.IsDistinguishable());
+    myassert(aon.IsDistinguishableTopo());
+  }
+}
+
 void test_CAPRI() {
   // action table of CAPRI
   // A's history : B's history (ccc,ccd,cdc,cdd,dcc,dcd,ddc,ddd)
@@ -442,6 +456,7 @@ int main() {
   test_AllC();
   test_EfficiencyDefensible();
   test_TFTATFT();
+  test_AON();
   test_CAPRI();
   test_CAPRI2();
   test_sCAPRI2();

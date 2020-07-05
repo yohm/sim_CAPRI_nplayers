@@ -103,6 +103,7 @@ class StateN2M3 {
 class StrategyN2M3 {
  public:
   explicit StrategyN2M3(const std::array<Action, 64> &acts); // construct a strategy from a list of actions
+  explicit StrategyN2M3(uint64_t acts);
   explicit StrategyN2M3(const char acts[64]);
   std::array<Action, 64> actions;
 
@@ -137,6 +138,8 @@ class StrategyN2M3 {
   static StrategyN2M3 CAPRI2();
   static StrategyN2M3 sCAPRI2();
   static StrategyN2M3 CAPRI() { return StrategyN2M3("cdddcdddcdcddddddcddcdddddddddddcdcdcdcdddddddddddddcdccddddddcd"); }
+  static StrategyN2M3 TFT_ATFT() { return StrategyN2M3("cdcdcdcddccddccdcdcccdccdccddccdcdcdcdcddccddccdcdcccdccdccddccd"); }
+  static StrategyN2M3 AON(size_t n);
  private:
   typedef std::array<std::array<int8_t, 64>, 64> d_matrix_t;
   std::vector<StateN2M3> NextPossibleStates(StateN2M3 current) const;

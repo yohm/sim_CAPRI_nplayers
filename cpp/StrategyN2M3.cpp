@@ -11,6 +11,13 @@ StrategyN2M3::StrategyN2M3(const char acts[64]) {
   }
 }
 
+StrategyN2M3::StrategyN2M3(uint64_t acts) {
+  for(size_t i = 0; i <64; i++) {
+    if( (acts & (1ul << i)) == 0 ) { actions[i] = C; }
+    else { actions[i] = D; }
+  }
+}
+
 std::vector<StateN2M3> StrategyN2M3::NextPossibleStates(StateN2M3 current) const {
   std::vector<StateN2M3> next_states;
   Action act_a = ActionAt(current);
@@ -573,6 +580,19 @@ StrategyN2M3 StrategyN2M3::sCAPRI2() {
   std::array<Action,64> acts{};
   for (size_t i = 0; i < N; i++) {
     acts[i] = CAPRIn_action_at(i, true);
+  }
+  return std::move(StrategyN2M3(acts));
+}
+
+StrategyN2M3 StrategyN2M3::AON(size_t n) {
+  if (n > 3) { throw std::runtime_error("n must be less than 4"); }
+  const size_t N = 64;
+  std::array<Action,64> acts{};
+  for (size_t i = 0; i < N; i++) {
+    size_t a_histo = i & 0b111;
+    size_t b_histo = (i>>3) & 0b111;
+    if (a_histo == b_histo) acts[i] = C;
+    else acts[i] = D;
   }
   return std::move(StrategyN2M3(acts));
 }
