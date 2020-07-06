@@ -585,12 +585,15 @@ StrategyN2M3 StrategyN2M3::sCAPRI2() {
 }
 
 StrategyN2M3 StrategyN2M3::AON(size_t n) {
-  if (n > 3) { throw std::runtime_error("n must be less than 4"); }
+  if (n > 3 || n <= 0) { throw std::runtime_error("n must be less than 4"); }
   const size_t N = 64;
   std::array<Action,64> acts{};
+  size_t mask = 0b001;
+  if (n == 2) mask = 0b011;
+  else if (n == 3) mask = 0b111;
   for (size_t i = 0; i < N; i++) {
-    size_t a_histo = i & 0b111;
-    size_t b_histo = (i>>3) & 0b111;
+    size_t a_histo = i & 0b111 & mask;
+    size_t b_histo = (i>>3) & 0b111 & mask;
     if (a_histo == b_histo) acts[i] = C;
     else acts[i] = D;
   }
