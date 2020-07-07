@@ -507,6 +507,32 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  if (false)  // debugging
+  {
+    Species wsls(0b1001, 1);
+    Species cccd(0b0111, 1);
+    Species capri2(0b10000, 1);
+    std::cerr << wsls.ToString() << std::endl;
+    std::cerr << capri2.ToString() << std::endl;
+    auto x = capri2.StationaryState(wsls, 0.0001);
+    std::cerr << x[0] << std::endl;
+    // std::vector<Species> pool = Species::Memory1Species(1);
+    std::vector<Species> pool;
+    pool.push_back(wsls);
+    pool.push_back(capri2);
+    pool.push_back(cccd);
+    Ecosystem eco(pool, 0.0001);
+    double p01 = eco.FixationProb(4.0, 1.0, 64, 1.0, 0, 1);
+    double p10 = eco.FixationProb(4.0, 1.0, 64, 1.0, 1, 0);
+    double p02 = eco.FixationProb(4.0, 1.0, 64, 1.0, 0, 2);
+    double p20 = eco.FixationProb(4.0, 1.0, 64, 1.0, 2, 0);
+    double p12 = eco.FixationProb(4.0, 1.0, 64, 1.0, 1, 2);
+    double p21 = eco.FixationProb(4.0, 1.0, 64, 1.0, 2, 1);
+    auto eq = eco.CalculateEquilibrium(4.0, 1.0, 64, 1.0);
+    std::cerr << cccd.ToString() << std::endl;
+    std::cerr << ' ' << p02 << std::endl;
+  }
+
   double cost = 1.0;
   uint64_t Nmax = std::strtoull(argv[1], nullptr,0);
   double sigma = std::strtod(argv[2], nullptr);
