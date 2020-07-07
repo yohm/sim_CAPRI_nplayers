@@ -81,7 +81,7 @@ plt.savefig(f"{data_dir}/CAPRI2_S_abundance_30.pdf")
 dat = np.loadtxt(f"{data_dir}/CAPRI2_N_dep_beta_3.dat")
 
 plt.ylim(-0.02, 1.02)
-plt.xlabel("N")
+plt.xlabel("poulation size")
 #plt.xscale('log')
 plt.yticks(color="None")
 #plt.ylabel("Abundance")

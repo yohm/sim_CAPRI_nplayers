@@ -117,7 +117,7 @@ plt.plot(dat[:,0], dat[:,4]   *64.0, label="CAPRI-3")
 dat = np.loadtxt(f"{data_dir}/CAPRI3_N_dep_beta_3.dat")
 
 plt.ylim(-0.02, 1.02)
-plt.xlabel("N")
+plt.xlabel("population size")
 #plt.xscale('log')
 plt.yticks(color="None")
 #plt.ylabel("Abundance")
