@@ -383,6 +383,11 @@ void test_CAPRI2() {
   myassert(simp_auto == simp_a);
   const auto full_a = capri2.MinimizeDFAHopcroft(true).to_map();
   myassert(full_auto == full_a);
+
+  StrategyN2M3 wsls = StrategyN2M3("cdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdccdcdcdcddcdcdcdc");
+  auto ss = capri2.StationaryState2(0.0001, &wsls);
+  std::cerr << ss[0] << std::endl;
+  myassert(ss[0] < 0.5); // distinguishable against WSLS
 }
 
 
