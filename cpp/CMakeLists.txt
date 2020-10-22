@@ -17,6 +17,7 @@ set(SOURCE_N3M5_FILES Action.cpp Action.hpp StrategyN3M5.cpp StrategyN3M5.hpp Di
 add_executable(test_StrategyN3M5.out test_StrategyN3M5.cpp ${SOURCE_N3M5_FILES})
 
 add_executable(main_evo_n2.out main_evo_n2.cpp ${SOURCE_N2M3_FILES})
+add_executable(main_evo_fixation_probs_n2.out main_evo_fixation_probs_n2.cpp ${SOURCE_N2M3_FILES})
 
 find_package(OpenMP REQUIRED)
 add_executable(main_evo_n3.out main_evo_n3.cpp ${SOURCE_N3M5_FILES})
