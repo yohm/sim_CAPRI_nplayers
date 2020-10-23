@@ -11,6 +11,7 @@
 #include <random>
 #include <cassert>
 #include <fstream>
+#include <omp.h>
 #include <Eigen/Dense>
 #include "StrategyN2M3.hpp"
 
@@ -76,9 +77,8 @@ int main(int argc, char *argv[]) {
 
   long n_resident = std::strtol(argv[5], nullptr, 0);
   long n_mutants = std::strtol(argv[6], nullptr, 0);
-  uint64_t seed = std::strtoull(argv[7], nullptr, 0);
+  int seed = std::strtol(argv[7], nullptr, 0);
 
-  std::mt19937_64 rnd(seed);
   std::uniform_int_distribution<uint64_t > dist(0, std::numeric_limits<uint64_t>::max() );
 
   const size_t NUM_BINS = 100;
@@ -86,32 +86,67 @@ int main(int argc, char *argv[]) {
   size_t robust_count = 0ul;
 
   if (n_resident > 0) {
-    for (size_t i = 0; i < n_resident; i++) {
-      uint64_t r = dist(rnd);
-      StrategyN2M3 res(r);
-      auto a_yy = res.StationaryState(e);
-      double s_yy = CalcPayoffs(a_yy, benefit)[0];
-      for (size_t j = 0; j < n_mutants; j++) {
-        uint64_t r2 = dist(rnd);
-        StrategyN2M3 mut(r2);
-        double rho = FixationProb(N, sigma, e, benefit, res, mut, s_yy);
-        size_t b = static_cast<size_t>(rho * NUM_BINS);
-        counts[b] += 1;
-        if (rho <= 1.0 / N) { robust_count++; }
+    #pragma omp parallel
+    {
+      std::vector<size_t> counts_tl(NUM_BINS, 0ul);
+      size_t robust_count_tl = 0ul;
+      int th = omp_get_thread_num();
+      std::seed_seq seq = {seed, th};
+      std::mt19937_64 rnd_tl(seq);
+
+      #pragma omp for
+      for (size_t i = 0; i < n_resident; i++) {
+        uint64_t r = dist(rnd_tl);
+        StrategyN2M3 res(r);
+        auto a_yy = res.StationaryState(e);
+        double s_yy = CalcPayoffs(a_yy, benefit)[0];
+        for (size_t j = 0; j < n_mutants; j++) {
+          uint64_t r2 = dist(rnd_tl);
+          StrategyN2M3 mut(r2);
+          double rho = FixationProb(N, sigma, e, benefit, res, mut, s_yy);
+          size_t b = static_cast<size_t>(rho * NUM_BINS);
+          counts_tl[b]++;
+          if (rho <= 1.0 / N) { robust_count_tl++; }
+        }
       }
+      // copy from thread local variables
+      for (size_t i = 0; i < counts_tl.size(); i++) {
+        #pragma omp atomic update
+        counts[i] += counts_tl[i];
+      }
+      #pragma omp atomic update
+      robust_count += robust_count_tl;
     }
   }
   else {
-    StrategyN2M3 res = StrategyN2M3::CAPRI2();
-    auto a_yy = res.StationaryState(e);
-    double s_yy = CalcPayoffs(a_yy, benefit)[0];
-    for (size_t j = 0; j < n_mutants; j++) {
-      uint64_t r2 = dist(rnd);
-      StrategyN2M3 mut(r2);
-      double rho = FixationProb(N, sigma, e, benefit, res, mut, s_yy);
-      size_t b = static_cast<size_t>(rho * NUM_BINS);
-      counts[b] += 1;
-      if (rho <= 1.0 / N) { robust_count++; }
+    #pragma omp parallel
+    {
+      std::vector<size_t> counts_tl(NUM_BINS, 0ul);
+      size_t robust_count_tl = 0ul;
+      int th = omp_get_thread_num();
+      std::seed_seq seq = {seed, th};
+      std::mt19937_64 rnd_tl(seq);
+
+      StrategyN2M3 res = StrategyN2M3::CAPRI2();
+      auto a_yy = res.StationaryState(e);
+      double s_yy = CalcPayoffs(a_yy, benefit)[0];
+
+      #pragma omp for
+      for (size_t j = 0; j < n_mutants; j++) {
+        uint64_t r2 = dist(rnd_tl);
+        StrategyN2M3 mut(r2);
+        double rho = FixationProb(N, sigma, e, benefit, res, mut, s_yy);
+        size_t b = static_cast<size_t>(rho * NUM_BINS);
+        counts_tl[b] += 1;
+        if (rho <= 1.0 / N) { robust_count_tl++; }
+      }
+      // copy from thread local variables
+      for (size_t i = 0; i < counts_tl.size(); i++) {
+      #pragma omp atomic update
+        counts[i] += counts_tl[i];
+      }
+      #pragma omp atomic update
+      robust_count += robust_count_tl;
     }
   }
 

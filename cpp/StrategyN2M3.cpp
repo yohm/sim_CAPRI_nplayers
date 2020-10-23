@@ -251,8 +251,8 @@ std::array<double, 64> StrategyN2M3::StationaryState(double e, const StrategyN2M
   solver.compute(A);
   Eigen::VectorXd x = solver.solve(b);
 
-  std::cerr << "#iterations:     " << solver.iterations() << std::endl;
-  std::cerr << "estimated error: " << solver.error() << std::endl;
+  // std::cerr << "#iterations:     " << solver.iterations() << std::endl;
+  // std::cerr << "estimated error: " << solver.error() << std::endl;
 
   std::array<double, 64> ans = {0};
   for (int i = 0; i < 64; i++) {
