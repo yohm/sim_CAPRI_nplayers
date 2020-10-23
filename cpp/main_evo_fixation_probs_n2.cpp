@@ -6,12 +6,10 @@
 #include <ostream>
 #include <vector>
 #include <array>
-#include <string>
-#include <map>
 #include <random>
 #include <cassert>
-#include <fstream>
 #include <omp.h>
+#include <mpi.h>
 #include <Eigen/Dense>
 #include "StrategyN2M3.hpp"
 
@@ -63,10 +61,12 @@ double FixationProb(size_t N, double sigma, double e, double benefit, const Stra
 }
 
 int main(int argc, char *argv[]) {
+  MPI_Init(&argc, &argv);
   Eigen::initParallel();
   if( argc != 8 ) {
     std::cerr << "Error : invalid argument" << std::endl;
     std::cerr << "  Usage : " << argv[0] << " <N> <sigma> <e> <benefit> <resident 0:caprin, +:num_resident_samples> <num_mutants> <seed>" << std::endl;
+    MPI_Finalize();
     return 1;
   }
 
@@ -85,17 +85,25 @@ int main(int argc, char *argv[]) {
   std::vector<size_t> counts(NUM_BINS, 0ul);
   size_t robust_count = 0ul;
 
+  int my_rank = 0;
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+  int num_procs = 0;
+  MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
+
   if (n_resident > 0) {
     #pragma omp parallel
     {
       std::vector<size_t> counts_tl(NUM_BINS, 0ul);
       size_t robust_count_tl = 0ul;
       int th = omp_get_thread_num();
-      std::seed_seq seq = {seed, th};
+      std::seed_seq seq = {seed, my_rank, th};
       std::mt19937_64 rnd_tl(seq);
+      size_t my_n_resident = n_resident / num_procs;
+      if (my_rank < n_resident % num_procs) { my_n_resident++; }
+      // std::cerr << "my_n_resident: " << my_n_resident << " " << my_rank << ' ' << th << std::endl;
 
       #pragma omp for
-      for (size_t i = 0; i < n_resident; i++) {
+      for (size_t i = 0; i < my_n_resident; i++) {
         uint64_t r = dist(rnd_tl);
         StrategyN2M3 res(r);
         auto a_yy = res.StationaryState(e);
@@ -124,15 +132,19 @@ int main(int argc, char *argv[]) {
       std::vector<size_t> counts_tl(NUM_BINS, 0ul);
       size_t robust_count_tl = 0ul;
       int th = omp_get_thread_num();
-      std::seed_seq seq = {seed, th};
+      std::seed_seq seq = {seed, my_rank, th};
       std::mt19937_64 rnd_tl(seq);
 
       StrategyN2M3 res = StrategyN2M3::CAPRI2();
       auto a_yy = res.StationaryState(e);
       double s_yy = CalcPayoffs(a_yy, benefit)[0];
 
+      size_t my_n_mutants = n_mutants / num_procs;
+      if (my_rank < n_mutants % num_procs) { my_n_mutants++; }
+      //std::cerr << "my_n_mutants: " << my_n_mutants << ' ' << my_rank << ' ' << th << std::endl;
+
       #pragma omp for
-      for (size_t j = 0; j < n_mutants; j++) {
+      for (size_t j = 0; j < my_n_mutants; j++) {
         uint64_t r2 = dist(rnd_tl);
         StrategyN2M3 mut(r2);
         double rho = FixationProb(N, sigma, e, benefit, res, mut, s_yy);
@@ -150,14 +162,23 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  // reduce counts
+  std::vector<size_t> all_counts(NUM_BINS, 0ul);
+  size_t all_robust_count = 0ul;
+  MPI_Reduce(counts.data(), all_counts.data(), all_counts.size(), MPI_UNSIGNED_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&robust_count, &all_robust_count, 1, MPI_UNSIGNED_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
+
   // print counts
-  double dx = 1.0 / NUM_BINS;
-  double total = (n_resident == 0) ? n_mutants : n_resident * n_mutants;
-  for (size_t i = 0; i < NUM_BINS; i++) {
-    std::cout << i * dx << ' ' << (double)counts[i]/total << std::endl;
+  if (my_rank == 0) {
+    double dx = 1.0 / NUM_BINS;
+    double total = (n_resident == 0) ? n_mutants : n_resident * n_mutants;
+    for (size_t i = 0; i < NUM_BINS; i++) {
+      std::cout << i * dx << ' ' << (double)all_counts[i]/total << std::endl;
+    }
+
+    std::cerr << "robust_count/total: " << all_robust_count << " / " << total << " : " << (double)all_robust_count/total << std::endl;
   }
 
-  std::cerr << "robust_count/total: " << robust_count << " / " << total << " : " << (double)robust_count/total << std::endl;
-
+  MPI_Finalize();
   return 0;
 }
