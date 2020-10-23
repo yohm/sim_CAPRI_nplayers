@@ -81,8 +81,9 @@ int main(int argc, char *argv[]) {
   std::mt19937_64 rnd(seed);
   std::uniform_int_distribution<uint64_t > dist(0, std::numeric_limits<uint64_t>::max() );
 
-  const size_t NUM_BINS = 10;
+  const size_t NUM_BINS = 100;
   std::vector<size_t> counts(NUM_BINS, 0ul);
+  size_t robust_count = 0ul;
 
   if (n_resident > 0) {
     for (size_t i = 0; i < n_resident; i++) {
@@ -96,6 +97,7 @@ int main(int argc, char *argv[]) {
         double rho = FixationProb(N, sigma, e, benefit, res, mut, s_yy);
         size_t b = static_cast<size_t>(rho * NUM_BINS);
         counts[b] += 1;
+        if (rho <= 1.0 / N) { robust_count++; }
       }
     }
   }
@@ -109,6 +111,7 @@ int main(int argc, char *argv[]) {
       double rho = FixationProb(N, sigma, e, benefit, res, mut, s_yy);
       size_t b = static_cast<size_t>(rho * NUM_BINS);
       counts[b] += 1;
+      if (rho <= 1.0 / N) { robust_count++; }
     }
   }
 
@@ -118,6 +121,8 @@ int main(int argc, char *argv[]) {
   for (size_t i = 0; i < NUM_BINS; i++) {
     std::cout << i * dx << ' ' << (double)counts[i]/total << std::endl;
   }
+
+  std::cerr << "robust_count/total: " << robust_count << " / " << total << " : " << (double)robust_count/total << std::endl;
 
   return 0;
 }
