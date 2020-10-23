@@ -8,6 +8,7 @@
 #include <sstream>
 #include <cstdint>
 #include <ostream>
+#include <bitset>
 #include <algorithm>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
