@@ -17,28 +17,26 @@
 // calculate the distribution of fixation probability rho
 // against randomly selected N2M3 deterministic strategies
 
-double FixationProb(size_t N, double sigma, double e, double beta, const StrategyN2M3 &res, const StrategyN2M3 &mut) {
+std::array<double,2> CalcPayoffs(const std::array<double,64>& stationary_state, double benefit) {
   const double cost = 1.0;
+  std::array<double,2> ans = {0.0, 0.0};
+  for (size_t i = 0; i < 64; i++) {
+    StateN2M3 s(i);
+    double pa = 0.0, pb = 0.0;
+    if (s.a_1 == C) { pa -= cost; pb += benefit; }
+    if (s.b_1 == C) { pb -= cost; pa += benefit; }
+    ans[0] += stationary_state[i] * pa;
+    ans[1] += stationary_state[i] * pb;
+  }
+  return std::move(ans);
+}
+
+double FixationProb(size_t N, double sigma, double e, double benefit, const StrategyN2M3 &res, const StrategyN2M3 &mut, double s_yy) {
   auto a_xx = mut.StationaryState(e);
-  auto a_yy = res.StationaryState(e);
   auto a_xy = mut.StationaryState(e, &res);
 
-  auto calc_payoffs = [cost,beta](const std::array<double,64>& ss)->std::array<double,2> {
-    std::array<double,2> ans = {0.0, 0.0};
-    for (size_t i = 0; i < 64; i++) {
-      StateN2M3 s(i);
-      double pa = 0.0, pb = 0.0;
-      if (s.a_1 == C) { pa -= cost; pb += beta; }
-      if (s.b_1 == C) { pb -= cost; pa += beta; }
-      ans[0] += ss[i] * pa;
-      ans[1] += ss[i] * pb;
-    }
-    return ans;
-  };
-
-  double s_xx = calc_payoffs(a_xx)[0];
-  double s_yy = calc_payoffs(a_yy)[0];
-  auto _xy = calc_payoffs(a_xy);
+  double s_xx = CalcPayoffs(a_xx, benefit)[0];
+  auto _xy = CalcPayoffs(a_xy, benefit);
   double s_xy = _xy[0];
   double s_yx = _xy[1];
 
@@ -67,14 +65,14 @@ int main(int argc, char *argv[]) {
   Eigen::initParallel();
   if( argc != 8 ) {
     std::cerr << "Error : invalid argument" << std::endl;
-    std::cerr << "  Usage : " << argv[0] << " <N> <sigma> <e> <beta> <resident 0:caprin, +:num_resident_samples> <num_mutants> <seed>" << std::endl;
+    std::cerr << "  Usage : " << argv[0] << " <N> <sigma> <e> <benefit> <resident 0:caprin, +:num_resident_samples> <num_mutants> <seed>" << std::endl;
     return 1;
   }
 
   size_t N = std::strtoul(argv[1], nullptr,0);
   double sigma = std::strtod(argv[2], nullptr);
   double e = std::strtod(argv[3], nullptr);
-  double beta = std::strtod(argv[4], nullptr);
+  double benefit = std::strtod(argv[4], nullptr);
 
   long n_resident = std::strtol(argv[5], nullptr, 0);
   long n_mutants = std::strtol(argv[6], nullptr, 0);
@@ -90,10 +88,12 @@ int main(int argc, char *argv[]) {
     for (size_t i = 0; i < n_resident; i++) {
       uint64_t r = dist(rnd);
       StrategyN2M3 res(r);
+      auto a_yy = res.StationaryState(e);
+      double s_yy = CalcPayoffs(a_yy, benefit)[0];
       for (size_t j = 0; j < n_mutants; j++) {
         uint64_t r2 = dist(rnd);
         StrategyN2M3 mut(r2);
-        double rho = FixationProb(N, sigma, e, beta, res, mut);
+        double rho = FixationProb(N, sigma, e, benefit, res, mut, s_yy);
         size_t b = static_cast<size_t>(rho * NUM_BINS);
         counts[b] += 1;
       }
@@ -101,10 +101,12 @@ int main(int argc, char *argv[]) {
   }
   else {
     StrategyN2M3 res = StrategyN2M3::CAPRI2();
+    auto a_yy = res.StationaryState(e);
+    double s_yy = CalcPayoffs(a_yy, benefit)[0];
     for (size_t j = 0; j < n_mutants; j++) {
       uint64_t r2 = dist(rnd);
       StrategyN2M3 mut(r2);
-      double rho = FixationProb(N, sigma, e, beta, res, mut);
+      double rho = FixationProb(N, sigma, e, benefit, res, mut, s_yy);
       size_t b = static_cast<size_t>(rho * NUM_BINS);
       counts[b] += 1;
     }
