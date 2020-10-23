@@ -24,6 +24,8 @@ target_link_libraries(main_evo_fixation_probs_n2.out PRIVATE OpenMP::OpenMP_CXX 
 
 add_executable(main_evo_n3.out main_evo_n3.cpp ${SOURCE_N3M5_FILES})
 target_link_libraries(main_evo_n3.out PRIVATE OpenMP::OpenMP_CXX)
+add_executable(main_evo_fixation_probs_n3.out main_evo_fixation_probs_n3.cpp ${SOURCE_N3M5_FILES})
+target_link_libraries(main_evo_fixation_probs_n3.out PRIVATE OpenMP::OpenMP_CXX ${MPI_LIBRARIES})
 
 add_executable(main_run_N4_defensibility.out main_run_N4_defensibility.cpp Action.cpp Action.hpp)
 target_link_libraries(main_run_N4_defensibility.out PRIVATE OpenMP::OpenMP_CXX)
