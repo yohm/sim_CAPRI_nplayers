@@ -184,7 +184,7 @@ uint64_t StrategyN3M5::NextITGState(const StateN3M5 &s) const {
 }
 
 std::array<double, StrategyN3M5::N> StrategyN3M5::StationaryState(double e, const StrategyN3M5 *B, const StrategyN3M5 *C) const {
-  std::cerr << "calculating stationary state" << std::endl;
+  // std::cerr << "calculating stationary state" << std::endl;
   if (B == nullptr) { B = this; }
   if (C == nullptr) { C = this; }
 
@@ -233,7 +233,7 @@ std::array<double, StrategyN3M5::N> StrategyN3M5::StationaryState(double e, cons
   Eigen::SparseMatrix<double> I(N, N);
   I.setFromTriplets(iVec.cbegin(), iVec.cend());
   A = A + I;
-  std::cerr << "  transition matrix has been created" << std::endl;
+  // std::cerr << "  transition matrix has been created" << std::endl;
 
   Eigen::VectorXd b = Eigen::VectorXd::Zero(N);
   b(N-1) = 1.0;

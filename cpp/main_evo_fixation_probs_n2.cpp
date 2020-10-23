@@ -11,6 +11,7 @@
 #include <omp.h>
 #include <mpi.h>
 #include <Eigen/Dense>
+#include <fstream>
 #include "StrategyN2M3.hpp"
 
 // calculate the distribution of fixation probability rho
@@ -81,7 +82,7 @@ int main(int argc, char *argv[]) {
 
   std::uniform_int_distribution<uint64_t > dist(0, std::numeric_limits<uint64_t>::max() );
 
-  const size_t NUM_BINS = 100;
+  const size_t NUM_BINS = 1000;
   std::vector<size_t> counts(NUM_BINS, 0ul);
   size_t robust_count = 0ul;
 
@@ -170,10 +171,11 @@ int main(int argc, char *argv[]) {
 
   // print counts
   if (my_rank == 0) {
+    std::ofstream fout("dist.dat");
     double dx = 1.0 / NUM_BINS;
     double total = (n_resident == 0) ? n_mutants : n_resident * n_mutants;
     for (size_t i = 0; i < NUM_BINS; i++) {
-      std::cout << i * dx << ' ' << (double)all_counts[i]/total << std::endl;
+      fout << i * dx << ' ' << (double)all_counts[i]/total << std::endl;
     }
 
     std::cerr << "robust_count/total: " << all_robust_count << " / " << total << " : " << (double)all_robust_count/total << std::endl;
