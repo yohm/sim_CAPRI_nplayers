@@ -8,7 +8,7 @@ find_package(OpenMP REQUIRED)
 find_package(MPI REQUIRED)
 
 set(SOURCE_N2M3_FILES Action.cpp Action.hpp StrategyN2M3.cpp StrategyN2M3.hpp DirectedGraph.hpp DirectedGraph.cpp UnionFind.hpp Partition.hpp)
-include_directories(SYSTEM /usr/local/include/eigen3)
+include_directories(SYSTEM /usr/local/include/eigen3 ${MPI_INCLUDE_PATH})
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -25,7 +25,7 @@ target_link_libraries(main_evo_fixation_probs_n2.out PRIVATE OpenMP::OpenMP_CXX 
 add_executable(main_evo_n3.out main_evo_n3.cpp ${SOURCE_N3M5_FILES})
 target_link_libraries(main_evo_n3.out PRIVATE OpenMP::OpenMP_CXX)
 add_executable(main_evo_fixation_probs_n3.out main_evo_fixation_probs_n3.cpp ${SOURCE_N3M5_FILES})
-target_link_libraries(main_evo_fixation_probs_n3.out PRIVATE OpenMP::OpenMP_CXX ${MPI_LIBRARIES})
+target_link_libraries(main_evo_fixation_probs_n3.out PRIVATE ${MPI_LIBRARIES})
 
 add_executable(main_run_N4_defensibility.out main_run_N4_defensibility.cpp Action.cpp Action.hpp)
 target_link_libraries(main_run_N4_defensibility.out PRIVATE OpenMP::OpenMP_CXX)
