@@ -83,7 +83,7 @@ std::bitset<StrategyN3M5::N> DrawRandomBit32768(std::mt19937_64 & rnd) {
     mask <<= (64 * i);
     ans |= mask;
   }
-  return std::move(ans);
+  return ans;
 }
 
 int main(int argc, char *argv[]) {
@@ -129,12 +129,15 @@ int main(int argc, char *argv[]) {
 
       #pragma omp for
       for (size_t i = 0; i < my_n_resident; i++) {
+        std::cerr << "i: " << i << " " << my_rank << ' ' << th << std::endl;
         StrategyN3M5 res( DrawRandomBit32768(rnd_tl) );
         auto a_yyy = res.StationaryState(e);
         double s_yyy = CalcPayoffs(a_yyy, benefit)[0];
         for (size_t j = 0; j < n_mutants; j++) {
+	  std::cerr << "j: " << j << " " << my_rank << ' ' << th << std::endl;
           StrategyN3M5 mut( DrawRandomBit32768(rnd_tl) );
           double rho = FixationProb(N, sigma, e, benefit, res, mut, s_yyy);
+          std::cerr << "  rho: " << rho << std::endl;
           size_t b = static_cast<size_t>(rho * NUM_BINS);
           counts_tl[b]++;
           if (rho <= 1.0 / N) { robust_count_tl++; }
