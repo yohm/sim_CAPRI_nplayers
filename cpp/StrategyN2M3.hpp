@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <ostream>
 #include <algorithm>
+#include <bitset>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include "Action.hpp"
