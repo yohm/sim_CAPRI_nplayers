@@ -2,7 +2,7 @@
 
 Code repository used for the calculation of the following study.
 
-[Y. Murase, S.K. Baek, "Friendly-rivalry solution to the iterated $n$-person public-goods game" (2020)](https://arxiv.org/abs/2008.00243)
+[Y. Murase, S.K. Baek, "Friendly-rivalry solution to the iterated $n$-person public-goods game" Plos Comp. Biol. (2021)](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1008217)
 
 ## Directory structure
 
